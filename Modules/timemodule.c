@@ -1563,7 +1563,9 @@ init_timezone(PyObject *m)
      */
 #if defined(HAVE_TZNAME) && !defined(__GLIBC__) && !defined(__CYGWIN__)
     PyObject *otz0, *otz1;
+#ifdef MS_DEKSTOP
     tzset();
+#endif
     PyModule_AddIntConstant(m, "timezone", _Py_timezone);
 #ifdef HAVE_ALTZONE
     PyModule_AddIntConstant(m, "altzone", altzone);

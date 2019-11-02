@@ -57,6 +57,10 @@ WIN32 is still required for the locale module.
 #define HAVE_STRERROR
 
 #include <io.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winapifamily.h>
 
 #define HAVE_HYPOT
 #define HAVE_STRFTIME
@@ -74,6 +78,16 @@ WIN32 is still required for the locale module.
 #define WITH_THREAD
 #ifndef NETSCAPE_PI
 #define USE_SOCKET
+#endif
+
+#ifdef MS_WINDOWS
+#	if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+#		define MS_DESKTOP
+#		undef MS_APP
+#	else
+#		undef MS_DEKSTOP
+#		define MS_APP
+#	endif
 #endif
 
 
@@ -133,8 +147,13 @@ WIN32 is still required for the locale module.
 
 /* set the version macros for the windows headers */
 /* Python 3.5+ requires Windows Vista or greater */
-#define Py_WINVER 0x0600 /* _WIN32_WINNT_VISTA */
-#define Py_NTDDI NTDDI_VISTA
+#ifdef MS_DESKTOP
+#define Py_WINVER 0x0601 /* _WIN32_WINNT_VISTA */
+#define Py_NTDDI 0x06010000
+#else
+#define PY_WINVER 0x0A00 /* _WIN32_WINNT_WIN10 */
+#define PyNTDDI NTDDI_WIN10
+#endif
 
 /* We only set these values when building Python - we don't want to force
    these values on extensions, as that will affect the prototypes and
@@ -263,7 +282,7 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
 #define HAVE_DECLSPEC_DLL
 
 /* For an MSVC DLL, we can nominate the .lib files used by extensions */
-#ifdef MS_COREDLL
+#if 0
 #       if !defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_BUILTIN)
                 /* not building the core - must be an ext */
 #               if defined(_MSC_VER)
@@ -313,11 +332,6 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
 #       define SIZEOF_TIME_T 4
 #       endif
 #endif
-
-#ifdef _DEBUG
-#       define Py_DEBUG
-#endif
-
 
 #ifdef MS_WIN32
 

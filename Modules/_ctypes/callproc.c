@@ -146,7 +146,7 @@ _ctypes_get_errobj(int **pspace)
         if (error_object_name == NULL)
             return NULL;
     }
-    errobj = PyDict_GetItem(dict, error_object_name);
+    errobj = PyDict_GetItemWithError(dict, error_object_name);
     if (errobj) {
         if (!PyCapsule_IsValid(errobj, CTYPES_CAPSULE_NAME_PYMEM)) {
             PyErr_SetString(PyExc_RuntimeError,
@@ -155,7 +155,7 @@ _ctypes_get_errobj(int **pspace)
         }
         Py_INCREF(errobj);
     }
-    else {
+    else if (!PyErr_Occurred()) {
         void *space = PyMem_Malloc(sizeof(int) * 2);
         if (space == NULL)
             return NULL;
@@ -170,6 +170,9 @@ _ctypes_get_errobj(int **pspace)
             Py_DECREF(errobj);
             return NULL;
         }
+    }
+    else {
+        return NULL;
     }
     *pspace = (int *)PyCapsule_GetPointer(errobj, CTYPES_CAPSULE_NAME_PYMEM);
     return errobj;
@@ -239,9 +242,7 @@ static WCHAR *FormatError(DWORD code)
 {
     WCHAR *lpMsgBuf;
     DWORD n;
-    n = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                       FORMAT_MESSAGE_FROM_SYSTEM |
-                       FORMAT_MESSAGE_IGNORE_INSERTS,
+    n = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
                        NULL,
                        code,
                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), /* Default language */
@@ -705,8 +706,11 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
 #endif
 
     {
+        _Py_IDENTIFIER(_as_parameter_);
         PyObject *arg;
-        arg = PyObject_GetAttrString(obj, "_as_parameter_");
+        if (_PyObject_LookupAttrId(obj, &PyId__as_parameter_, &arg) < 0) {
+            return -1;
+        }
         /* Which types should we exactly allow here?
            integers are required for using Python classes
            as parameters (they have to expose the '_as_parameter_'
@@ -725,7 +729,6 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
     }
 }
 
-
 ffi_type *_ctypes_get_ffi_type(PyObject *obj)
 {
     StgDictObject *dict;
@@ -739,9 +742,10 @@ ffi_type *_ctypes_get_ffi_type(PyObject *obj)
        It returns small structures in registers
     */
     if (dict->ffi_type_pointer.type == FFI_TYPE_STRUCT) {
-        if (can_return_struct_as_int(dict->ffi_type_pointer.size))
+		size_t size = dict->ffi_type_pointer.size;
+        if (size == 1 || size == 2 || size == 4)
             return &ffi_type_sint32;
-        else if (can_return_struct_as_sint64 (dict->ffi_type_pointer.size))
+        else if (size == 8)
             return &ffi_type_sint64;
     }
 #endif
@@ -771,15 +775,12 @@ static int _call_function_pointer(int flags,
 {
     PyThreadState *_save = NULL; /* For Py_BLOCK_THREADS and Py_UNBLOCK_THREADS */
     PyObject *error_object = NULL;
-    int *space;
+    int *space = NULL;
     ffi_cif cif;
     int cc;
-#ifdef MS_WIN32
-    int delta;
-#ifndef DONT_USE_SEH
+#if defined(MS_WIN32) && !defined(DONT_USE_SEH)
     DWORD dwExceptionCode = 0;
     EXCEPTION_RECORD record;
-#endif
 #endif
     /* XXX check before here */
     if (restype == NULL) {
@@ -789,7 +790,7 @@ static int _call_function_pointer(int flags,
     }
 
     cc = FFI_DEFAULT_ABI;
-#if defined(MS_WIN32) && !defined(MS_WIN64) && !defined(_WIN32_WCE)
+#if defined(MS_WIN32) && defined(_M_IX86) && !defined(_WIN32_WCE)
     if ((flags & FUNCFLAG_CDECL) == 0)
         cc = FFI_STDCALL;
 #endif
@@ -810,13 +811,13 @@ static int _call_function_pointer(int flags,
     }
     if ((flags & FUNCFLAG_PYTHONAPI) == 0)
         Py_UNBLOCK_THREADS
-    if (flags & FUNCFLAG_USE_ERRNO) {
+    if (flags & FUNCFLAG_USE_ERRNO && space != NULL) {
         int temp = space[0];
         space[0] = errno;
         errno = temp;
     }
 #ifdef MS_WIN32
-    if (flags & FUNCFLAG_USE_LASTERROR) {
+    if (flags & FUNCFLAG_USE_LASTERROR && space != NULL) {
         int temp = space[1];
         space[1] = GetLastError();
         SetLastError(temp);
@@ -824,7 +825,6 @@ static int _call_function_pointer(int flags,
 #ifndef DONT_USE_SEH
     __try {
 #endif
-        delta =
 #endif
                 ffi_call(&cif, (void *)pProc, resmem, avalues);
 #ifdef MS_WIN32
@@ -835,13 +835,13 @@ static int _call_function_pointer(int flags,
         ;
     }
 #endif
-    if (flags & FUNCFLAG_USE_LASTERROR) {
+    if (flags & FUNCFLAG_USE_LASTERROR && space != NULL) {
         int temp = space[1];
         space[1] = GetLastError();
         SetLastError(temp);
     }
 #endif
-    if (flags & FUNCFLAG_USE_ERRNO) {
+    if (flags & FUNCFLAG_USE_ERRNO && space != NULL) {
         int temp = space[0];
         space[0] = errno;
         errno = temp;
@@ -853,35 +853,6 @@ static int _call_function_pointer(int flags,
 #ifndef DONT_USE_SEH
     if (dwExceptionCode) {
         SetException(dwExceptionCode, &record);
-        return -1;
-    }
-#endif
-#ifdef MS_WIN64
-    if (delta != 0) {
-        PyErr_Format(PyExc_RuntimeError,
-                 "ffi_call failed with code %d",
-                 delta);
-        return -1;
-    }
-#else
-    if (delta < 0) {
-        if (flags & FUNCFLAG_CDECL)
-            PyErr_Format(PyExc_ValueError,
-                     "Procedure called with not enough "
-                     "arguments (%d bytes missing) "
-                     "or wrong calling convention",
-                     -delta);
-        else
-            PyErr_Format(PyExc_ValueError,
-                     "Procedure probably called with not enough "
-                     "arguments (%d bytes missing)",
-                     -delta);
-        return -1;
-    } else if (delta > 0) {
-        PyErr_Format(PyExc_ValueError,
-                 "Procedure probably called with too many "
-                 "arguments (%d bytes in excess)",
-                 delta);
         return -1;
     }
 #endif
@@ -983,6 +954,7 @@ error:
 
 
 #ifdef MS_WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 
 static PyObject *
 GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
@@ -1051,6 +1023,7 @@ GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
 
     return NULL;
 }
+#endif
 #endif
 
 #if (defined(__x86_64__) && (defined(__MINGW64__) || defined(__CYGWIN__))) || \
@@ -1209,9 +1182,11 @@ PyObject *_ctypes_callproc(PPROC pProc,
 
 #ifdef MS_WIN32
     if (iid && pIunk) {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
         if (*(int *)resbuf & 0x80000000)
             retval = GetComError(*(HRESULT *)resbuf, iid, pIunk);
         else
+#endif
             retval = PyLong_FromLong(*(int *)resbuf);
     } else if (flags & FUNCFLAG_HRESULT) {
         if (*(int *)resbuf & 0x80000000)
@@ -1282,7 +1257,14 @@ static PyObject *load_library(PyObject *self, PyObject *args)
     if (!name)
         return NULL;
 
-    hMod = LoadLibraryW(name);
+	Py_BEGIN_ALLOW_THREADS
+#ifdef MS_DESKTOP
+	hMod = LoadLibraryW(name);
+#else
+	hMod = LoadPackagedLibrary(name, 0);
+#endif
+    Py_END_ALLOW_THREADS
+
     if (!hMod)
         return PyErr_SetFromWindowsErr(GetLastError());
 #ifdef _WIN64
@@ -1299,9 +1281,15 @@ Free the handle of an executable previously loaded by LoadLibrary.\n";
 static PyObject *free_library(PyObject *self, PyObject *args)
 {
     void *hMod;
+    BOOL result;
     if (!PyArg_ParseTuple(args, "O&:FreeLibrary", &_parse_voidp, &hMod))
         return NULL;
-    if (!FreeLibrary((HMODULE)hMod))
+
+    Py_BEGIN_ALLOW_THREADS
+    result = FreeLibrary((HMODULE)hMod);
+    Py_END_ALLOW_THREADS
+
+    if (!result)
         return PyErr_SetFromWindowsErr(GetLastError());
     Py_RETURN_NONE;
 }
@@ -1705,10 +1693,13 @@ POINTER(PyObject *self, PyObject *cls)
     PyObject *key;
     char *buf;
 
-    result = PyDict_GetItem(_ctypes_ptrtype_cache, cls);
+    result = PyDict_GetItemWithError(_ctypes_ptrtype_cache, cls);
     if (result) {
         Py_INCREF(result);
         return result;
+    }
+    else if (PyErr_Occurred()) {
+        return NULL;
     }
     if (PyUnicode_CheckExact(cls)) {
         const char *name = PyUnicode_AsUTF8(cls);
@@ -1765,12 +1756,16 @@ pointer(PyObject *self, PyObject *arg)
     PyObject *result;
     PyObject *typ;
 
-    typ = PyDict_GetItem(_ctypes_ptrtype_cache, (PyObject *)Py_TYPE(arg));
-    if (typ)
+    typ = PyDict_GetItemWithError(_ctypes_ptrtype_cache, (PyObject *)Py_TYPE(arg));
+    if (typ) {
         return PyObject_CallFunctionObjArgs(typ, arg, NULL);
+    }
+    else if (PyErr_Occurred()) {
+        return NULL;
+    }
     typ = POINTER(NULL, (PyObject *)Py_TYPE(arg));
     if (typ == NULL)
-                    return NULL;
+        return NULL;
     result = PyObject_CallFunctionObjArgs(typ, arg, NULL);
     Py_DECREF(typ);
     return result;

@@ -814,7 +814,7 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
                 element_types[element_index++] = &dict->ffi_type_pointer;
             }
             else {
-                int length = dict->length;
+                int length = (int)dict->length;
                 StgDictObject *edict;
 
                 edict = PyType_stgdict(dict->proto);

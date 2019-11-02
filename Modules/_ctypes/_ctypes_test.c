@@ -2,6 +2,8 @@
 
 #ifdef MS_WIN32
 #include <windows.h>
+#include <wtypes.h>
+#include <Unknwn.h>
 #endif
 
 #if defined(MS_WIN32) || defined(__CYGWIN__)

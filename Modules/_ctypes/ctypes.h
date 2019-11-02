@@ -11,6 +11,14 @@
 #define PARAMFLAG_FLCID 0x4
 #endif
 
+#ifdef MS_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+#include <Unknwn.h>
+#endif
+
 typedef struct tagPyCArgObject PyCArgObject;
 typedef struct tagCDataObject CDataObject;
 typedef PyObject *(* GETFUNC)(void *, Py_ssize_t size);

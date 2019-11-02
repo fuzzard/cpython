@@ -131,7 +131,7 @@ PyDoc_STRVAR(_winapi_CreateFile__doc__,
     {"CreateFile", (PyCFunction)_winapi_CreateFile, METH_FASTCALL, _winapi_CreateFile__doc__},
 
 static HANDLE
-_winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
+_winapi_CreateFile_impl(PyObject *module, LPCWSTR file_name,
                         DWORD desired_access, DWORD share_mode,
                         LPSECURITY_ATTRIBUTES security_attributes,
                         DWORD creation_disposition,
@@ -141,7 +141,7 @@ static PyObject *
 _winapi_CreateFile(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 {
     PyObject *return_value = NULL;
-    LPCTSTR file_name;
+    LPCWSTR file_name;
     DWORD desired_access;
     DWORD share_mode;
     LPSECURITY_ATTRIBUTES security_attributes;
@@ -150,7 +150,7 @@ _winapi_CreateFile(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     HANDLE template_file;
     HANDLE _return_value;
 
-    if (!_PyArg_ParseStack(args, nargs, "skk" F_POINTER "kk" F_HANDLE ":CreateFile",
+    if (!_PyArg_ParseStack(args, nargs, "ukk" F_POINTER "kk" F_HANDLE ":CreateFile",
         &file_name, &desired_access, &share_mode, &security_attributes, &creation_disposition, &flags_and_attributes, &template_file)) {
         goto exit;
     }
@@ -278,6 +278,7 @@ exit:
     return return_value;
 }
 
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 PyDoc_STRVAR(_winapi_CreateProcess__doc__,
 "CreateProcess($module, application_name, command_line, proc_attrs,\n"
 "              thread_attrs, inherit_handles, creation_flags,\n"
@@ -331,6 +332,7 @@ _winapi_CreateProcess(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 exit:
     return return_value;
 }
+#endif
 
 PyDoc_STRVAR(_winapi_DuplicateHandle__doc__,
 "DuplicateHandle($module, source_process_handle, source_handle,\n"

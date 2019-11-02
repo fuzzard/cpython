@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="_object">
+    <Intrinsic Name="IsLong" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 24)" />
+    <Intrinsic Name="IsList" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 25)" />
+    <Intrinsic Name="IsTuple" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 26)" />
+    <Intrinsic Name="IsBytes" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 27)" />
+    <Intrinsic Name="IsString" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 28)" />
+    <Intrinsic Name="IsDict" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 29)" />
+    <Intrinsic Name="IsExcBase" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 30)" />
+    <Intrinsic Name="IsType" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 31)" />
+    <Intrinsic Name="IsCallable" Expression="ob_type-&gt;tp_call != 0" />
+    <Intrinsic Name="IsPyFunction" Expression="ob_type == &amp;PyFunction_Type" />
+    <Intrinsic Name="IsPyCFunction" Expression="ob_type == &amp;PyCFunction_Type" />
+    <Intrinsic Name="IsCode" Expression="ob_type == &amp;PyCode_Type" />
+    <Intrinsic Name="IsModule" Expression="ob_type == &amp;PyModule_Type" />
+    <Intrinsic Name="IsMethod" Expression="ob_type == &amp;PyMethod_Type" />
+    <Intrinsic Name="IsInstance" Expression="ob_type == &amp;PyInstanceMethod_Type" />
+    <Intrinsic Name="IsNone" Expression="ob_type == &amp;_PyNone_Type" />
+    <Intrinsic Name="PyUnicode_IS_ASCII" Expression="((PyASCIIObject*)this)-&gt;state.ascii" />
+    <Intrinsic Name="PyUnicode_KIND" Expression="((PyASCIIObject *)this)-&gt;state.kind" />
+    <Intrinsic Name="PyUnicode_IS_COMPACT" Expression=" ((PyASCIIObject*)this)-&gt;state.compact" />
+    <Intrinsic Name="PyUnicode_IS_COMPACT_ASCII" Expression="((PyASCIIObject*)this)-&gt;state.ascii &amp;&amp; PyUnicode_IS_COMPACT()"/>
+    <Intrinsic Name="_PyUnicode_COMPACT_DATA" Expression="PyUnicode_IS_ASCII() ? (void*)((PyASCIIObject*)this + 1) : (void*)((PyCompactUnicodeObject*)this + 1)" />
+    <Intrinsic Name="_PyUnicode_NONCOMPACT_DATA" Expression="((PyUnicodeObject *)this)-&gt;data.any" />
+    <Intrinsic Name="PyUnicode_DATA" Expression="PyUnicode_IS_COMPACT() ? _PyUnicode_COMPACT_DATA() : _PyUnicode_NONCOMPACT_DATA()" />
+    <Intrinsic Name="PyUnicode_1BYTE_DATA" Expression="(Py_UCS1*)PyUnicode_DATA()" />
+    <Intrinsic Name="PyUnicode_2BYTE_DATA" Expression="(Py_UCS2*)PyUnicode_DATA()" />
+    <Intrinsic Name="PyUnicode_4BYTE_DATA" Expression="(Py_UCS4*)PyUnicode_DATA()" />
+    <Intrinsic Name="DK_SIZE" Expression="((PyDictObject*)this)->ma_keys->dk_size" />
+    <Intrinsic Name="PointerSize" Expression="sizeof(PyObject*)" />
+    <Intrinsic Name="DK_IXSIZE" Expression="DK_SIZE() &lt;= 0xff ? 1 : DK_SIZE() &lt;= 0xffff ? 2 : DK_SIZE() &lt;= 0xffffffff ? 4 : 8" />
+    <Intrinsic Name="DK_ENTRIES" Expression="((PyDictKeyEntry*)(&amp;((int8_t*)(((PyDictObject*)this)->ma_keys->dk_indices))[DK_SIZE() * DK_IXSIZE()]))" />
+
+    <DisplayString Condition="IsString() &amp;&amp; (PyUnicode_IS_ASCII() || PyUnicode_KIND() == 1)">{PyUnicode_1BYTE_DATA(),na}</DisplayString>
+    <DisplayString Condition="IsString() &amp;&amp; (PyUnicode_KIND() == 0 || PyUnicode_KIND() == 2)">{PyUnicode_2BYTE_DATA(),na}</DisplayString>
+    <DisplayString Condition="IsString() &amp;&amp; PyUnicode_KIND() == 4">{PyUnicode_4BYTE_DATA(),na}</DisplayString>
+    <DisplayString Condition="IsList()">{{ size={((PyVarObject*)this)->ob_size} }}</DisplayString>
+    <DisplayString Condition="IsCallable()">{{ PyFunctionObject name={((PyFunctionObject*)this)->func_name,na} }}</DisplayString>
+    <DisplayString Condition="IsBytes()">{{ PyBytesObject size={((PyVarObject*)this)->ob_size,na} }}</DisplayString>
+    <DisplayString Condition="IsTuple()">{{ PyTupleObject size={((PyVarObject*)this)->ob_size,na} }}</DisplayString>
+    <DisplayString Condition="IsLong()">{{ PyLongObject value={*((PyLongObject*)this)->ob_digit,na} }}</DisplayString>
+    <DisplayString Condition="IsNone()">{{ PyNoneObject }}</DisplayString>
+    <DisplayString Condition="IsModule()">{{ PyModuleObject name={((PyModuleObject*)this)->md_name,na} }}</DisplayString>
+    <DisplayString Condition="IsMethod()">{{ PyMethodObject func={((PyMethodObject*)this)->im_func,na} }}</DisplayString>
+    <DisplayString Condition="IsInstance()">{{ PyInstanceMethodObject func={((PyInstanceMethodObject*)this)->func,na} }}</DisplayString>
+    <DisplayString Condition="IsDict()">{{ PyDictObject size={((PyDictObject*)this)->ma_keys->dk_nentries,na} }}</DisplayString>
+    <DisplayString Condition="!IsString() &amp;&amp; !IsList()">{ob_type->tp_name,na}</DisplayString>
+    <Expand>
+      <Item Name="ob_refcnt">ob_refcnt</Item>
+      <!--List object section PyListObject-->
+      <Item Name="[capacity]" Condition="IsList()">(((PyVarObject*)(this))->ob_size)</Item>
+      <ArrayItems Condition="IsList()">
+          <Size>(((PyVarObject*)(this))->ob_size)</Size>
+          <ValuePointer>((PyListObject *)this)->ob_item</ValuePointer>
+      </ArrayItems>
+      <ArrayItems Condition="IsBytes()">
+          <Size>(((PyVarObject*)(this))->ob_size)</Size>
+          <ValuePointer>((PyBytesObject *)this)->ob_sval</ValuePointer>
+      </ArrayItems>
+      <ArrayItems Condition="IsTuple()">
+          <Size>(((PyVarObject*)(this))->ob_size)</Size>
+          <ValuePointer>((PyTupleObject *)this)->ob_item</ValuePointer>
+      </ArrayItems>
+      <!--Callable object section PyFunctionObject-->
+      <Item Name="func_name" Condition="IsCallable()">((PyFunctionObject*)this)->func_name</Item>
+      <Item Name="func_doc" Condition="IsCallable()">((PyFunctionObject*)this)->func_doc</Item>
+      <Item Name="func_module" Condition="IsCallable()">((PyFunctionObject*)this)->func_module</Item>
+      <Item Name="func_qualname" Condition="IsCallable()">((PyFunctionObject*)this)->func_qualname</Item>
+      <Item Name="func_code" Condition="IsCallable()">((PyFunctionObject*)this)->func_code</Item>
+      <Item Name="func_globals" Condition="IsCallable()">((PyFunctionObject*)this)->func_globals</Item>
+      <Item Name="func_defaults" Condition="IsCallable()">((PyFunctionObject*)this)->func_defaults</Item>
+      <Item Name="func_kwdefaults" Condition="IsCallable()">((PyFunctionObject*)this)->func_kwdefaults</Item>
+      <Item Name="func_closure" Condition="IsCallable()">((PyFunctionObject*)this)->func_closure</Item>
+      <Item Name="func_dict" Condition="IsCallable()">((PyFunctionObject*)this)->func_dict</Item>
+      <Item Name="func_weakreflist" Condition="IsCallable()">((PyFunctionObject*)this)->func_weakreflist</Item>
+      <Item Name="func_annotations" Condition="IsCallable()">((PyFunctionObject*)this)->func_annotations</Item>
+
+      <!--Code object section PyCodeObject-->
+      <Item Name="co_argcount" Condition="IsCode()">((PyCodeObject*)this)->co_argcount</Item>
+      <Item Name="co_kwonlyargcount" Condition="IsCode()">((PyCodeObject*)this)->co_kwonlyargcount</Item>
+      <Item Name="co_nlocals" Condition="IsCode()">((PyCodeObject*)this)->co_nlocals</Item>
+      <Item Name="co_stacksize" Condition="IsCode()">((PyCodeObject*)this)->co_stacksize</Item>
+      <Item Name="co_flags" Condition="IsCode()">((PyCodeObject*)this)->co_flags</Item>
+      <Item Name="co_firstlineno" Condition="IsCode()">((PyCodeObject*)this)->co_firstlineno</Item>
+      <Item Name="co_code" Condition="IsCode()">((PyCodeObject*)this)->co_code</Item>
+      <Item Name="co_consts" Condition="IsCode()">((PyCodeObject*)this)->co_consts</Item>
+      <Item Name="co_names" Condition="IsCode()">((PyCodeObject*)this)->co_names</Item>
+      <Item Name="co_varnames" Condition="IsCode()">((PyCodeObject*)this)->co_varnames</Item>
+      <Item Name="co_freevars" Condition="IsCode()">((PyCodeObject*)this)->co_freevars</Item>
+      <Item Name="co_cellvars" Condition="IsCode()">((PyCodeObject*)this)->co_cellvars</Item>
+      <Item Name="co_cell2arg" Condition="IsCode()">((PyCodeObject*)this)->co_cell2arg</Item>
+      <Item Name="co_filename" Condition="IsCode()">((PyCodeObject*)this)->co_filename</Item>
+      <Item Name="co_name" Condition="IsCode()">((PyCodeObject*)this)->co_name</Item>
+      <Item Name="co_lnotab" Condition="IsCode()">((PyCodeObject*)this)->co_lnotab</Item>
+
+      <!--Module object section PyModuleObject-->
+      <Item Name="md_name" Condition="IsModule()">((PyModuleObject*)this)->md_name</Item>
+      <Item Name="md_dict" Condition="IsModule()">((PyModuleObject*)this)->md_dict</Item>
+      <Item Name="md_def" Condition="IsModule()">((PyModuleObject*)this)->md_def</Item>
+      <Item Name="md_state" Condition="IsModule()">((PyModuleObject*)this)->md_state</Item>
+      <Item Name="md_weaklist" Condition="IsModule()">((PyModuleObject*)this)->md_weaklist</Item>
+
+      <!--Method object section PyMethodObject-->
+      <Item Name="im_func" Condition="IsMethod()">((PyMethodObject*)this)->im_func</Item>
+      <Item Name="im_self" Condition="IsMethod()">((PyMethodObject*)this)->im_self</Item>
+      <Item Name="im_weakreflist" Condition="IsMethod()">((PyMethodObject*)this)->im_weakreflist</Item>
+
+      <!--Dict object section PyDictObject-->
+      <Item Name="ma_used" Condition="IsDict()">((PyDictObject*)this)->ma_used</Item>
+      <Item Name="ma_version_tag" Condition="IsDict()">((PyDictObject*)this)->ma_version_tag</Item>
+      <Item Name="ma_keys" Condition="IsDict()">((PyDictObject*)this)->ma_keys</Item>
+      <Item Name="ma_values" Condition="IsDict()">((PyDictObject*)this)->ma_values</Item>
+
+      <ArrayItems Condition="IsDict()">
+        <Size>((PyDictObject*)this)->ma_keys->dk_nentries</Size>
+        <ValuePointer Condition="((PyDictObject*)this)-&gt;ma_values != 0">*((PyDictObject *)this)->ma_values</ValuePointer>
+        <ValuePointer Condition="((PyDictObject*)this)-&gt;ma_values == 0">DK_ENTRIES()</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="_inittab">
+    <DisplayString>{{ name={name,na}, initfunc={initfunc,na} }}</DisplayString>
+    <Expand>
+      <Item Name="name">name,na</Item>
+      <Item Name="initfunc">initfunc,na</Item>
+    </Expand>
+  </Type>
+  <Type Name="PyDictKeyEntry">
+    <DisplayString>{{ key={me_key,na} value={me_value,na} }}</DisplayString>
+    <Expand>
+      <Item Name="me_hash">me_hash,na</Item>
+      <Item Name="me_key">me_key,na</Item>
+      <Item Name="me_value">me_value,na</Item>
+    </Expand>
+  </Type>
+  <Type Name="_typeobject">
+    <DisplayString >{tp_name}</DisplayString>
+  </Type>
+</AutoVisualizer>

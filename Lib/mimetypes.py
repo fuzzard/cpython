@@ -29,6 +29,8 @@ import posixpath
 import urllib.parse
 try:
     import winreg as _winreg
+    if _winreg.IS_SUPPORTED == 0:
+        _winreg = None
 except ImportError:
     _winreg = None
 

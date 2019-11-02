@@ -54,7 +54,7 @@ main(int argc, char *argv[])
         fprintf(stderr, "cannot open '%s' for reading\n", inpath);
         goto error;
     }
-    if (_Py_fstat_noraise(fileno(infile), &status)) {
+    if (!_Py_fstat_noraise(fileno(infile), &status)) {
         fprintf(stderr, "cannot fstat '%s'\n", inpath);
         goto error;
     }

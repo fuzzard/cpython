@@ -102,7 +102,7 @@ typedef struct {
 #ifdef MS_WINDOWS
     HANDLE      map_handle;
     HANDLE      file_handle;
-    char *      tagname;
+    wchar_t *      tagname;
 #endif
 
 #ifdef UNIX
@@ -408,20 +408,17 @@ mmap_size_method(mmap_object *self,
 
 #ifdef MS_WINDOWS
     if (self->file_handle != INVALID_HANDLE_VALUE) {
-        DWORD low,high;
-        long long size;
-        low = GetFileSize(self->file_handle, &high);
-        if (low == INVALID_FILE_SIZE) {
+		LARGE_INTEGER size;
+        if (!GetFileSizeEx(self->file_handle, &size)) {
             /* It might be that the function appears to have failed,
                when indeed its size equals INVALID_FILE_SIZE */
             DWORD error = GetLastError();
             if (error != NO_ERROR)
                 return PyErr_SetFromWindowsErr(error);
         }
-        if (!high && low < LONG_MAX)
-            return PyLong_FromLong((long)low);
-        size = (((long long)high)<<32) + low;
-        return PyLong_FromLongLong(size);
+        if (!size.HighPart && size.LowPart < LONG_MAX)
+            return PyLong_FromLong((long)size.LowPart);
+        return PyLong_FromLongLong(size.QuadPart);
     } else {
         return PyLong_FromSsize_t(self->size);
     }
@@ -485,7 +482,7 @@ mmap_resize_method(mmap_object *self,
         /* Change the size of the file */
         SetEndOfFile(self->file_handle);
         /* Create another mapping object and remap the file view */
-        self->map_handle = CreateFileMapping(
+        self->map_handle = CreateFileMappingW(
             self->file_handle,
             NULL,
             PAGE_READWRITE,
@@ -687,7 +684,7 @@ mmap__sizeof__method(mmap_object *self, void *unused)
 
     res = _PyObject_SIZE(Py_TYPE(self));
     if (self->tagname)
-        res += strlen(self->tagname) + 1;
+        res += wcslen(self->tagname) + 1;
     return PyLong_FromSsize_t(res);
 }
 #endif
@@ -1201,7 +1198,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
     DWORD off_lo;       /* lower 32 bits of offset */
     DWORD size_hi;      /* upper 32 bits of size */
     DWORD size_lo;      /* lower 32 bits of size */
-    const char *tagname = "";
+    const wchar_t *tagname = L"";
     DWORD dwErr = 0;
     int fileno;
     HANDLE fh = 0;
@@ -1296,17 +1293,13 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
             return NULL;
         }
         if (!map_size) {
-            DWORD low,high;
-            low = GetFileSize(fh, &high);
-            /* low might just happen to have the value INVALID_FILE_SIZE;
-               so we need to check the last error also. */
-            if (low == INVALID_FILE_SIZE &&
-                (dwErr = GetLastError()) != NO_ERROR) {
+			LARGE_INTEGER sizeStruct;
+            if (!GetFileSizeEx(fh, &sizeStruct)) {
                 Py_DECREF(m_obj);
                 return PyErr_SetFromWindowsErr(dwErr);
             }
 
-            size = (((long long) high) << 32) + low;
+			size = sizeStruct.QuadPart;
             if (size == 0) {
                 PyErr_SetString(PyExc_ValueError,
                                 "cannot mmap an empty file");
@@ -1342,14 +1335,14 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
     m_obj->weakreflist = NULL;
     m_obj->exports = 0;
     /* set the tag name */
-    if (tagname != NULL && *tagname != '\0') {
-        m_obj->tagname = PyMem_Malloc(strlen(tagname)+1);
+    if (tagname != NULL && *tagname != L'\0') {
+        m_obj->tagname = PyMem_Malloc((wcslen(tagname)+1) * sizeof(wchar_t));
         if (m_obj->tagname == NULL) {
             PyErr_NoMemory();
             Py_DECREF(m_obj);
             return NULL;
         }
-        strcpy(m_obj->tagname, tagname);
+        wcscpy(m_obj->tagname, tagname);
     }
     else
         m_obj->tagname = NULL;
@@ -1361,7 +1354,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
     off_lo = (DWORD)(offset & 0xFFFFFFFF);
     /* For files, it would be sufficient to pass 0 as size.
        For anonymous maps, we have to pass the size explicitly. */
-    m_obj->map_handle = CreateFileMapping(m_obj->file_handle,
+    m_obj->map_handle = CreateFileMappingW(m_obj->file_handle,
                                           NULL,
                                           flProtect,
                                           size_hi,

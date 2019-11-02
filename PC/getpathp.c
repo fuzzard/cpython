@@ -90,6 +90,7 @@
 
 #include <windows.h>
 #include <shlwapi.h>
+#include <PathCch.h>
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -244,6 +245,7 @@ static PPathCchCombineEx _PathCchCombineEx;
 static void
 join(wchar_t *buffer, const wchar_t *stuff)
 {
+#ifdef MS_DESKTOP
     if (_PathCchCombineEx_Initialized == 0) {
         HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
                                          LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -265,12 +267,19 @@ join(wchar_t *buffer, const wchar_t *stuff)
             Py_FatalError("buffer overflow in getpathp.c's join()");
         }
     }
+#else
+	if (FAILED(PathCchCombineEx(buffer, MAXPATHLEN+1, buffer, stuff, 0))) {
+		Py_FatalError("buffer overflow in getpathp.c's join()");
+	}
+#endif
 }
 
+#ifdef MS_DESKTOP
 static int _PathCchCanonicalizeEx_Initialized = 0;
 typedef HRESULT(__stdcall *PPathCchCanonicalizeEx) (PWSTR pszPathOut, size_t cchPathOut,
     PCWSTR pszPathIn, unsigned long dwFlags);
 static PPathCchCanonicalizeEx _PathCchCanonicalizeEx;
+#endif
 
 static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
 {
@@ -278,6 +287,7 @@ static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
         return _Py_INIT_NO_MEMORY();
     }
 
+#ifdef MS_DESKTOP
     if (_PathCchCanonicalizeEx_Initialized == 0) {
         HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
                                          LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -300,6 +310,11 @@ static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
             return _Py_INIT_ERR("buffer overflow in getpathp.c's canonicalize()");
         }
     }
+#else
+	if (FAILED(PathCchCanonicalizeEx(buffer, MAXPATHLEN + 1, path, 0))) {
+		return _Py_INIT_ERR("buffer overflow in getpathp.c's canonicalize()");
+	}
+#endif
     return _Py_INIT_OK();
 }
 
@@ -354,9 +369,11 @@ extern const char *PyWin_DLLVersionString;
    work on Win16, where the buffer sizes werent available
    in advance.  It could be simplied now Win16/Win32s is dead!
 */
+
 static wchar_t *
 getpythonregpath(HKEY keyBase, int skipcore)
 {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     HKEY newKey = 0;
     DWORD dataSize = 0;
     DWORD numKeys = 0;
@@ -505,6 +522,9 @@ done:
     }
     PyMem_RawFree(keyBuf);
     return retval;
+#else
+	return NULL;
+#endif
 }
 #endif /* Py_ENABLE_SHARED */
 
@@ -1049,7 +1069,7 @@ done:
    Return whether the DLL was found.
 */
 static int python3_checked = 0;
-static HANDLE hPython3;
+static HANDLE hPython3 = (HANDLE)NULL;
 int
 _Py_CheckPython3(void)
 {
@@ -1068,7 +1088,11 @@ _Py_CheckPython3(void)
         s = py3path;
     }
     wcscpy(s, L"\\python3.dll");
+#ifdef MS_DESKTOP
     hPython3 = LoadLibraryExW(py3path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#else
+	hPython3 = LoadPackagedLibrary(py3path, 0);
+#endif
     if (hPython3 != NULL) {
         return 1;
     }
@@ -1076,6 +1100,10 @@ _Py_CheckPython3(void)
     /* Check sys.prefix\DLLs\python3.dll */
     wcscpy(py3path, Py_GetPrefix());
     wcscat(py3path, L"\\DLLs\\python3.dll");
+#ifdef MS_DESKTOP
     hPython3 = LoadLibraryExW(py3path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#else
+	hPython3 = LoadPackagedLibrary(py3path, 0);
+#endif
     return hPython3 != NULL;
 }

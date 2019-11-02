@@ -1,7 +1,9 @@
 
 /* Core extension modules are built-in on some platforms (e.g. Windows). */
 #ifdef Py_BUILD_CORE
+#ifndef Py_BUILD_CORE_BUILTIN
 #define Py_BUILD_CORE_BUILTIN
+#endif
 #undef Py_BUILD_CORE
 #endif
 
@@ -25,6 +27,11 @@ enum {
     HIGHEST_PROTOCOL = 4,
     DEFAULT_PROTOCOL = 3
 };
+
+#ifdef UNICODE
+#define REDEFINE_UNICODE 1
+#undef UNICODE
+#endif
 
 /* Pickle opcodes. These must be kept updated with pickle.py.
    Extensive docs are in pickletools.py. */
@@ -101,6 +108,11 @@ enum opcode {
     MEMOIZE          = '\x94',
     FRAME            = '\x95'
 };
+
+#ifdef REDEFINE_UNICODE
+#define UNICODE 1
+#undef REDEFINE_UNICODE
+#endif
 
 enum {
    /* Keep in synch with pickle.Pickler._BATCHSIZE.  This is how many elements
