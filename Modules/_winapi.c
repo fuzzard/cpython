@@ -61,24 +61,6 @@
 
 #define T_HANDLE T_POINTER
 
-/* Grab CancelIoEx dynamically from kernel32 */
-static int has_CancelIoEx = -1;
-static BOOL (CALLBACK *Py_CancelIoEx)(HANDLE, LPOVERLAPPED);
-
-static int
-check_CancelIoEx()
-{
-    if (has_CancelIoEx == -1)
-    {
-        HINSTANCE hKernel32 = GetModuleHandle("KERNEL32");
-        * (FARPROC *) &Py_CancelIoEx = GetProcAddress(hKernel32,
-                                                      "CancelIoEx");
-        has_CancelIoEx = (Py_CancelIoEx != NULL);
-    }
-    return has_CancelIoEx;
-}
-
-
 /*
  * A Python object wrapping an OVERLAPPED structure and other useful data
  * for overlapped I/O
@@ -106,9 +88,7 @@ overlapped_dealloc(OverlappedObject *self)
     int err = GetLastError();
 
     if (self->pending) {
-        if (check_CancelIoEx() &&
-            Py_CancelIoEx(self->handle, &self->overlapped) &&
-            GetOverlappedResult(self->handle, &self->overlapped, &bytes, TRUE))
+        if (GetOverlappedResult(self->handle, &self->overlapped, &bytes, TRUE))
         {
             /* The operation is no longer pending -- nothing to do. */
         }
@@ -265,10 +245,7 @@ _winapi_Overlapped_cancel_impl(OverlappedObject *self)
 
     if (self->pending) {
         Py_BEGIN_ALLOW_THREADS
-        if (check_CancelIoEx())
-            res = Py_CancelIoEx(self->handle, &self->overlapped);
-        else
-            res = CancelIo(self->handle);
+		res = CancelIo(self->handle);
         Py_END_ALLOW_THREADS
     }
 
@@ -450,11 +427,20 @@ _winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
 {
     HANDLE handle;
 
-    Py_BEGIN_ALLOW_THREADS
-    handle = CreateFile(file_name, desired_access,
-                        share_mode, security_attributes,
-                        creation_disposition,
-                        flags_and_attributes, template_file);
+	Py_BEGIN_ALLOW_THREADS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+		handle = CreateFile(file_name, desired_access,
+			share_mode, security_attributes,
+			creation_disposition,
+			flags_and_attributes, template_file);
+#else
+		CREATEFILE2_EXTENDED_PARAMETERS extended;
+		extended.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
+		extended.hTemplateFile = template_file;
+		extended.lpSecurityAttributes = security_attributes;
+		handle = CreateFile2(file_name, desired_access,
+			share_mode, creation_disposition, &extended);
+#endif
     Py_END_ALLOW_THREADS
 
     if (handle == INVALID_HANDLE_VALUE)
@@ -858,7 +844,7 @@ cleanup:
     Py_XDECREF(value_fast);
     return ret;
 }
-
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 typedef struct {
     LPPROC_THREAD_ATTRIBUTE_LIST attribute_list;
     LPHANDLE handle_list;
@@ -1090,6 +1076,8 @@ cleanup:
 
     return ret;
 }
+
+#endif
 
 /*[clinic input]
 _winapi.DuplicateHandle -> HANDLE
@@ -1722,8 +1710,10 @@ static PyMethodDef winapi_functions[] = {
     _WINAPI_CREATEFILE_METHODDEF
     _WINAPI_CREATENAMEDPIPE_METHODDEF
     _WINAPI_CREATEPIPE_METHODDEF
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     _WINAPI_CREATEPROCESS_METHODDEF
     _WINAPI_CREATEJUNCTION_METHODDEF
+#endif
     _WINAPI_DUPLICATEHANDLE_METHODDEF
     _WINAPI_EXITPROCESS_METHODDEF
     _WINAPI_GETCURRENTPROCESS_METHODDEF
@@ -1813,8 +1803,10 @@ PyInit__winapi(void)
     WINAPI_CONSTANT(F_DWORD, PIPE_WAIT);
     WINAPI_CONSTANT(F_DWORD, PROCESS_ALL_ACCESS);
     WINAPI_CONSTANT(F_DWORD, PROCESS_DUP_HANDLE);
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     WINAPI_CONSTANT(F_DWORD, STARTF_USESHOWWINDOW);
     WINAPI_CONSTANT(F_DWORD, STARTF_USESTDHANDLES);
+#endif
     WINAPI_CONSTANT(F_DWORD, STD_INPUT_HANDLE);
     WINAPI_CONSTANT(F_DWORD, STD_OUTPUT_HANDLE);
     WINAPI_CONSTANT(F_DWORD, STD_ERROR_HANDLE);

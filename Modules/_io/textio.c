@@ -2939,7 +2939,7 @@ _io_TextIOWrapper_close_impl(textio *self)
         Py_RETURN_NONE; /* stream already closed */
     }
     else {
-        PyObject *exc = NULL, *val, *tb;
+        PyObject *exc = NULL, *val = NULL, *tb = NULL;
         if (self->finalizing) {
             res = _PyObject_CallMethodIdObjArgs(self->buffer,
                                                 &PyId__dealloc_warn,

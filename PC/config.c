@@ -45,7 +45,9 @@ extern PyObject* PyInit_mmap(void);
 extern PyObject* PyInit__csv(void);
 extern PyObject* PyInit__sre(void);
 extern PyObject* PyInit_parser(void);
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 extern PyObject* PyInit_winreg(void);
+#endif
 extern PyObject* PyInit__struct(void);
 extern PyObject* PyInit__datetime(void);
 extern PyObject* PyInit__functools(void);
@@ -124,7 +126,9 @@ struct _inittab _PyImport_Inittab[] = {
     {"_csv", PyInit__csv},
     {"_sre", PyInit__sre},
     {"parser", PyInit_parser},
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     {"winreg", PyInit_winreg},
+#endif
     {"_struct", PyInit__struct},
     {"_datetime", PyInit__datetime},
     {"_functools", PyInit__functools},

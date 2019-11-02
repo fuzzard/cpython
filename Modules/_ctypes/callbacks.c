@@ -136,7 +136,7 @@ static void _CallPythonObject(void *mem,
     PyObject *arglist = NULL;
     Py_ssize_t nArgs;
     PyObject *error_object = NULL;
-    int *space;
+    int *space = NULL;
     PyGILState_STATE state = PyGILState_Ensure();
 
     nArgs = PySequence_Length(converters);
@@ -233,13 +233,13 @@ if (x == NULL) _PyTraceback_Add(what, "_ctypes/callbacks.c", __LINE__ - 1), PyEr
     CHECK("'calling callback function'", result);
 
 #ifdef MS_WIN32
-    if (flags & FUNCFLAG_USE_LASTERROR) {
+    if (flags & FUNCFLAG_USE_LASTERROR && space != NULL) {
         int temp = space[1];
         space[1] = GetLastError();
         SetLastError(temp);
     }
 #endif
-    if (flags & FUNCFLAG_USE_ERRNO) {
+    if (flags & FUNCFLAG_USE_ERRNO && space != NULL) {
         int temp = space[0];
         space[0] = errno;
         errno = temp;
@@ -375,7 +375,7 @@ CThunkObject *_ctypes_alloc_callback(PyObject *callable,
     }
 
     cc = FFI_DEFAULT_ABI;
-#if defined(MS_WIN32) && !defined(_WIN32_WCE) && !defined(MS_WIN64)
+#if defined(MS_WIN32) && defined(_M_IX86) && !defined(_WIN32_WCE)
     if ((flags & FUNCFLAG_CDECL) == 0)
         cc = FFI_STDCALL;
 #endif

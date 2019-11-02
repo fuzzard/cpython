@@ -354,9 +354,11 @@ extern const char *PyWin_DLLVersionString;
    work on Win16, where the buffer sizes werent available
    in advance.  It could be simplied now Win16/Win32s is dead!
 */
+
 static wchar_t *
 getpythonregpath(HKEY keyBase, int skipcore)
 {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     HKEY newKey = 0;
     DWORD dataSize = 0;
     DWORD numKeys = 0;
@@ -505,6 +507,9 @@ done:
     }
     PyMem_RawFree(keyBuf);
     return retval;
+#else
+	return NULL;
+#endif
 }
 #endif /* Py_ENABLE_SHARED */
 
@@ -1049,10 +1054,11 @@ done:
    Return whether the DLL was found.
 */
 static int python3_checked = 0;
-static HANDLE hPython3;
+static HANDLE hPython3 = (HANDLE)NULL;
 int
 _Py_CheckPython3(void)
 {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     wchar_t py3path[MAXPATHLEN+1];
     wchar_t *s;
     if (python3_checked) {
@@ -1078,4 +1084,7 @@ _Py_CheckPython3(void)
     wcscat(py3path, L"\\DLLs\\python3.dll");
     hPython3 = LoadLibraryExW(py3path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
     return hPython3 != NULL;
+#else
+	return 0;
+#endif
 }

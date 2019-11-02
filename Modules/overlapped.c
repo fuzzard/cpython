@@ -37,6 +37,10 @@
 
 #define T_HANDLE T_POINTER
 
+#if !defined(HasOverlappedIoCompleted)
+#define HasOverlappedIoCompleted(lpOverlapped) (lpOverlapped)->Internal != STATUS_PENDING
+#endif
+
 enum {TYPE_NONE, TYPE_NOT_STARTED, TYPE_READ, TYPE_READINTO, TYPE_WRITE,
       TYPE_ACCEPT, TYPE_CONNECT, TYPE_DISCONNECT, TYPE_CONNECT_NAMED_PIPE,
       TYPE_WAIT_NAMED_PIPE_AND_CONNECT, TYPE_TRANSMIT_FILE};
@@ -90,7 +94,6 @@ static LPFN_ACCEPTEX Py_AcceptEx = NULL;
 static LPFN_CONNECTEX Py_ConnectEx = NULL;
 static LPFN_DISCONNECTEX Py_DisconnectEx = NULL;
 static LPFN_TRANSMITFILE Py_TransmitFile = NULL;
-static BOOL (CALLBACK *Py_CancelIoEx)(HANDLE, LPOVERLAPPED) = NULL;
 
 #define GET_WSA_POINTER(s, x)                                           \
     (SOCKET_ERROR != WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,    \
@@ -126,9 +129,6 @@ initialize_function_pointers(void)
 
     closesocket(s);
 
-    /* On WinXP we will have Py_CancelIoEx == NULL */
-    hKernel32 = GetModuleHandle("KERNEL32");
-    *(FARPROC *)&Py_CancelIoEx = GetProcAddress(hKernel32, "CancelIoEx");
     return 0;
 }
 
@@ -595,9 +595,6 @@ Overlapped_dealloc(OverlappedObject *self)
     if (!HasOverlappedIoCompleted(&self->overlapped) &&
         self->type != TYPE_NOT_STARTED)
     {
-        if (Py_CancelIoEx && Py_CancelIoEx(self->handle, &self->overlapped))
-            wait = TRUE;
-
         Py_BEGIN_ALLOW_THREADS
         ret = GetOverlappedResult(self->handle, &self->overlapped,
                                   &bytes, wait);
@@ -642,10 +639,7 @@ Overlapped_cancel(OverlappedObject *self)
 
     if (!HasOverlappedIoCompleted(&self->overlapped)) {
         Py_BEGIN_ALLOW_THREADS
-        if (Py_CancelIoEx)
-            ret = Py_CancelIoEx(self->handle, &self->overlapped);
-        else
-            ret = CancelIo(self->handle);
+		ret = CancelIo(self->handle);
         Py_END_ALLOW_THREADS
     }
 

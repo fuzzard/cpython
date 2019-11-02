@@ -168,7 +168,6 @@ EXPORTS
   PyEval_EvalFrame=python37.PyEval_EvalFrame
   PyEval_EvalFrameEx=python37.PyEval_EvalFrameEx
   PyEval_GetBuiltins=python37.PyEval_GetBuiltins
-  PyEval_GetCallStats=python37.PyEval_GetCallStats
   PyEval_GetFrame=python37.PyEval_GetFrame
   PyEval_GetFuncDesc=python37.PyEval_GetFuncDesc
   PyEval_GetFuncName=python37.PyEval_GetFuncName

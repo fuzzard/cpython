@@ -16,6 +16,7 @@
 #include "structmember.h"
 #include "windows.h"
 
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 static BOOL PyHKEY_AsHKEY(PyObject *ob, HKEY *pRes, BOOL bNoneOK);
 static BOOL clinic_HKEY_converter(PyObject *ob, void *p);
 static PyObject *PyHKEY_FromHKEY(HKEY h);
@@ -1971,3 +1972,4 @@ PyMODINIT_FUNC PyInit_winreg(void)
 }
 
 
+#endif

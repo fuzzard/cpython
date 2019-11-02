@@ -1,6 +1,7 @@
 #include "Python.h"
 #ifdef MS_WINDOWS
 #include <windows.h>
+#include <WinSock2.h>
 #endif
 
 #if defined(__APPLE__)

@@ -948,6 +948,7 @@ static int
 get_inheritable(int fd, int raise)
 {
 #ifdef MS_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     HANDLE handle;
     DWORD flags;
 
@@ -967,6 +968,9 @@ get_inheritable(int fd, int raise)
     }
 
     return (flags & HANDLE_FLAG_INHERIT);
+#else
+	return 0;
+#endif
 #else
     int flags;
 
@@ -1033,21 +1037,25 @@ set_inheritable(int fd, int inheritable, int raise, int *atomic_flag_works)
         return -1;
     }
 
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     if (inheritable)
         flags = HANDLE_FLAG_INHERIT;
     else
+#endif
         flags = 0;
 
     /* This check can be removed once support for Windows 7 ends. */
 #define CONSOLE_PSEUDOHANDLE(handle) (((ULONG_PTR)(handle) & 0x3) == 0x3 && \
         GetFileType(handle) == FILE_TYPE_CHAR)
 
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     if (!CONSOLE_PSEUDOHANDLE(handle) &&
         !SetHandleInformation(handle, HANDLE_FLAG_INHERIT, flags)) {
         if (raise)
             PyErr_SetFromWindowsErr(0);
         return -1;
     }
+#endif
 #undef CONSOLE_PSEUDOHANDLE
     return 0;
 

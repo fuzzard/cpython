@@ -278,6 +278,7 @@ exit:
     return return_value;
 }
 
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 PyDoc_STRVAR(_winapi_CreateProcess__doc__,
 "CreateProcess($module, application_name, command_line, proc_attrs,\n"
 "              thread_attrs, inherit_handles, creation_flags,\n"
@@ -331,6 +332,7 @@ _winapi_CreateProcess(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 exit:
     return return_value;
 }
+#endif
 
 PyDoc_STRVAR(_winapi_DuplicateHandle__doc__,
 "DuplicateHandle($module, source_process_handle, source_handle,\n"

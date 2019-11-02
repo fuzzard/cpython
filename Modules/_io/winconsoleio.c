@@ -200,7 +200,7 @@ _io__WindowsConsoleIO_close_impl(winconsoleio *self)
 /*[clinic end generated code: output=27ef95b66c29057b input=185617e349ae4c7b]*/
 {
     PyObject *res;
-    PyObject *exc, *val, *tb;
+    PyObject *exc = NULL, *val = NULL, *tb = NULL;
     int rc;
     _Py_IDENTIFIER(close);
     res = _PyObject_CallMethodIdObjArgs((PyObject*)&PyRawIOBase_Type,

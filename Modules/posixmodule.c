@@ -6429,6 +6429,9 @@ os_setpgrp_impl(PyObject *module)
 static PyObject*
 win32_getppid()
 {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP | WINAPI_PARTITION_SYSTEM)
+	return PyLong_FromPid((pid_t)GetCurrentProcessId());
+#else
     HANDLE snapshot;
     pid_t mypid;
     PyObject* result = NULL;
@@ -6462,6 +6465,7 @@ win32_getppid()
     CloseHandle(snapshot);
 
     return result;
+#endif
 }
 #endif /*MS_WINDOWS*/
 
@@ -6501,6 +6505,7 @@ os_getlogin_impl(PyObject *module)
 {
     PyObject *result = NULL;
 #ifdef MS_WINDOWS
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     wchar_t user_name[UNLEN + 1];
     DWORD num_chars = Py_ARRAY_LENGTH(user_name);
 
@@ -6510,6 +6515,9 @@ os_getlogin_impl(PyObject *module)
     }
     else
         result = PyErr_SetFromWindowsErr(GetLastError());
+#else
+	result = PyUnicode_FromWideChar(L"N/A", 4);
+#endif
 #else
     char *name;
     int old_errno = errno;
@@ -11495,6 +11503,7 @@ static int
 os_get_handle_inheritable_impl(PyObject *module, intptr_t handle)
 /*[clinic end generated code: output=36be5afca6ea84d8 input=cfe99f9c05c70ad1]*/
 {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     DWORD flags;
 
     if (!GetHandleInformation((HANDLE)handle, &flags)) {
@@ -11503,6 +11512,9 @@ os_get_handle_inheritable_impl(PyObject *module, intptr_t handle)
     }
 
     return flags & HANDLE_FLAG_INHERIT;
+#else
+	return 0;
+#endif
 }
 
 
@@ -11520,12 +11532,16 @@ os_set_handle_inheritable_impl(PyObject *module, intptr_t handle,
                                int inheritable)
 /*[clinic end generated code: output=021d74fe6c96baa3 input=7a7641390d8364fc]*/
 {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     DWORD flags = inheritable ? HANDLE_FLAG_INHERIT : 0;
     if (!SetHandleInformation((HANDLE)handle, HANDLE_FLAG_INHERIT, flags)) {
         PyErr_SetFromWindowsErr(0);
         return NULL;
     }
     Py_RETURN_NONE;
+#else
+	Py_RETURN_NONE;
+#endif
 }
 #endif /* MS_WINDOWS */
 

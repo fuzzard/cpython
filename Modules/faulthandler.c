@@ -920,7 +920,7 @@ faulthandler_unregister_py(PyObject *self, PyObject *args)
 static void
 faulthandler_suppress_crash_report(void)
 {
-#ifdef MS_WINDOWS
+#if defined(MS_WINDOWS) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
     UINT mode;
 
     /* Configure Windows to not display the Windows Error Reporting dialog */

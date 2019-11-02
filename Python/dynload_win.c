@@ -210,7 +210,7 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
 #endif
 
         /* Don't display a message box when Python can't load a DLL */
-        old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
+        //old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
 
 #if HAVE_SXS
         cookie = _Py_ActivateActCtx();
@@ -218,14 +218,13 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
         /* We use LoadLibraryEx so Windows looks for dependent DLLs
             in directory of pathname first. */
         /* XXX This call doesn't exist in Windows CE */
-        hDLL = LoadLibraryExW(wpathname, NULL,
-                              LOAD_WITH_ALTERED_SEARCH_PATH);
+        hDLL = LoadLibraryExW(wpathname, NULL);
 #if HAVE_SXS
         _Py_DeactivateActCtx(cookie);
 #endif
 
         /* restore old error mode settings */
-        SetErrorMode(old_mode);
+        //SetErrorMode(old_mode);
 
         if (hDLL==NULL){
             PyObject *message;

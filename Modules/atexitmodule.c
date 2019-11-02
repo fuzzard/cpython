@@ -65,7 +65,7 @@ atexit_cleanup(atexitmodule_state *modstate)
 static void
 atexit_callfuncs(PyObject *module)
 {
-    PyObject *exc_type = NULL, *exc_value, *exc_tb, *r;
+    PyObject *exc_type = NULL, *exc_value = NULL, *exc_tb = NULL, *r = NULL;
     atexit_callback *cb;
     atexitmodule_state *modstate;
     int i;
