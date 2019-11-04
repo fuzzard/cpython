@@ -188,6 +188,9 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
                                               const char *shortname,
                                               PyObject *pathname, FILE *fp)
 {
+#ifdef MS_APP
+	return NULL;
+#else
     dl_funcptr p;
     char funcname[258], *import_python;
     const wchar_t *wpathname;
@@ -210,7 +213,7 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
 #endif
 
         /* Don't display a message box when Python can't load a DLL */
-        //old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
+        old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
 
 #if HAVE_SXS
         cookie = _Py_ActivateActCtx();
@@ -224,7 +227,7 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
 #endif
 
         /* restore old error mode settings */
-        //SetErrorMode(old_mode);
+        SetErrorMode(old_mode);
 
         if (hDLL==NULL){
             PyObject *message;
@@ -305,4 +308,5 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
     }
 
     return p;
+#endif
 }

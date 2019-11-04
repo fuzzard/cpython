@@ -428,7 +428,7 @@ _winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
     HANDLE handle;
 
 	Py_BEGIN_ALLOW_THREADS
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+#ifdef MS_DESKTOP
 		handle = CreateFile(file_name, desired_access,
 			share_mode, security_attributes,
 			creation_disposition,
@@ -462,6 +462,9 @@ _winapi_CreateJunction_impl(PyObject *module, LPWSTR src_path,
                             LPWSTR dst_path)
 /*[clinic end generated code: output=66b7eb746e1dfa25 input=8cd1f9964b6e3d36]*/
 {
+#ifdef MS_APP
+	Py_RETURN_NOTIMPLEMENTED;
+#else
     /* Privilege adjustment */
     HANDLE token = NULL;
     TOKEN_PRIVILEGES tp;
@@ -584,6 +587,7 @@ cleanup:
         return PyErr_SetFromWindowsErr(ret);
 
     Py_RETURN_NONE;
+#endif
 }
 
 /*[clinic input]
@@ -1277,7 +1281,17 @@ _winapi_GetVersion_impl(PyObject *module)
 #pragma warning(disable:4996)
 
 {
-    return GetVersion();
+	DWORD version;
+	OSVERSIONINFOEXW version_info;
+	version_info.dwOSVersionInfoSize = sizeof(version_info);
+
+	if (GetVersionExW(&version_info)) {
+		return version_info.dwMinorVersion |
+			(version_info.dwMajorVersion << 8) |
+			(version_info.dwBuildNumber << 16);
+	}
+	
+	return 0;
 }
 
 #pragma warning(pop)

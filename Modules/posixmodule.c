@@ -485,8 +485,13 @@ PyOS_AfterFork(void)
 #ifdef MS_WINDOWS
 /* defined in fileutils.c */
 PyAPI_FUNC(void) _Py_time_t_to_FILE_TIME(time_t, int, FILETIME *);
-PyAPI_FUNC(void) _Py_attribute_data_to_stat(BY_HANDLE_FILE_INFORMATION *,
-                                            ULONG, struct _Py_stat_struct *);
+PyAPI_FUNC(void) _Py_find_data_to_stat(WIN32_FIND_DATAW *,
+                                            struct _Py_stat_struct *);
+PyAPI_FUNC(HANDLE) _Py_win_create_file(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES,
+										DWORD, DWORD, HANDLE);
+PyAPI_FUNC(int) _Py_stat_from_file_handle(HANDLE h,
+											struct _Py_stat_struct* result, BOOL set_ino);
+
 #endif
 
 #ifdef MS_WINDOWS
@@ -1554,7 +1559,7 @@ win32_wchdir(LPCWSTR path)
 }
 #endif
 
-#ifdef MS_WINDOWS
+#if defined(MS_WINDOWS)
 /* The CRT of Windows has a number of flaws wrt. its stat() implementation:
    - time stamps are restricted to second resolution
    - file modification times suffer from forth-and-back conversions between
@@ -1564,27 +1569,8 @@ win32_wchdir(LPCWSTR path)
 #define HAVE_STAT_NSEC 1
 #define HAVE_STRUCT_STAT_ST_FILE_ATTRIBUTES 1
 
-static void
-find_data_to_file_info(WIN32_FIND_DATAW *pFileData,
-                       BY_HANDLE_FILE_INFORMATION *info,
-                       ULONG *reparse_tag)
-{
-    memset(info, 0, sizeof(*info));
-    info->dwFileAttributes = pFileData->dwFileAttributes;
-    info->ftCreationTime   = pFileData->ftCreationTime;
-    info->ftLastAccessTime = pFileData->ftLastAccessTime;
-    info->ftLastWriteTime  = pFileData->ftLastWriteTime;
-    info->nFileSizeHigh    = pFileData->nFileSizeHigh;
-    info->nFileSizeLow     = pFileData->nFileSizeLow;
-/*  info->nNumberOfLinks   = 1; */
-    if (pFileData->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-        *reparse_tag = pFileData->dwReserved0;
-    else
-        *reparse_tag = 0;
-}
-
 static BOOL
-attributes_from_dir(LPCWSTR pszFile, BY_HANDLE_FILE_INFORMATION *info, ULONG *reparse_tag)
+attributes_from_dir(LPCWSTR pszFile, struct _Py_stat_struct *result, ULONG *reparse_tag)
 {
     HANDLE hFindFile;
     WIN32_FIND_DATAW FileData;
@@ -1592,7 +1578,7 @@ attributes_from_dir(LPCWSTR pszFile, BY_HANDLE_FILE_INFORMATION *info, ULONG *re
     if (hFindFile == INVALID_HANDLE_VALUE)
         return FALSE;
     FindClose(hFindFile);
-    find_data_to_file_info(&FileData, info, reparse_tag);
+    _Py_find_data_to_stat(&FileData, result, reparse_tag);
     return TRUE;
 }
 
@@ -1635,23 +1621,27 @@ win32_xstat_impl(const wchar_t *path, struct _Py_stat_struct *result,
 {
     int code;
     HANDLE hFile, hFile2;
-    BY_HANDLE_FILE_INFORMATION info;
     ULONG reparse_tag = 0;
     wchar_t *target_path;
     const wchar_t *dot;
 
-    hFile = CreateFileW(
+	DWORD attributes =
+		/* FILE_FLAG_BACKUP_SEMANTICS is required to open a directory */
+		/* FILE_FLAG_OPEN_REPARSE_POINT does not follow the symlink.
+		   Because of this, calls like GetFinalPathNameByHandle will return
+		   the symlink path again and not the actual final path. */
+		FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS;
+
+	if (!traverse)
+		attributes |= FILE_FLAG_OPEN_REPARSE_POINT;
+
+    hFile = _Py_win_create_file(
         path,
         FILE_READ_ATTRIBUTES, /* desired access */
         0, /* share mode */
         NULL, /* security attributes */
         OPEN_EXISTING,
-        /* FILE_FLAG_BACKUP_SEMANTICS is required to open a directory */
-        /* FILE_FLAG_OPEN_REPARSE_POINT does not follow the symlink.
-           Because of this, calls like GetFinalPathNameByHandle will return
-           the symlink path again and not the actual final path. */
-        FILE_ATTRIBUTE_NORMAL|FILE_FLAG_BACKUP_SEMANTICS|
-            FILE_FLAG_OPEN_REPARSE_POINT,
+		attributes,
         NULL);
 
     if (hFile == INVALID_HANDLE_VALUE) {
@@ -1664,59 +1654,17 @@ win32_xstat_impl(const wchar_t *path, struct _Py_stat_struct *result,
             return -1;
         /* Could not get attributes on open file. Fall back to
            reading the directory. */
-        if (!attributes_from_dir(path, &info, &reparse_tag))
+        if (!attributes_from_dir(path, &result, &reparse_tag)) {
             /* Very strange. This should not fail now */
             return -1;
-        if (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-            if (traverse) {
-                /* Should traverse, but could not open reparse point handle */
-                SetLastError(lastError);
-                return -1;
-            }
         }
     } else {
-        if (!GetFileInformationByHandle(hFile, &info)) {
+        if (!_Py_stat_from_file_handle(hFile, result, FALSE)) {
             CloseHandle(hFile);
             return -1;
         }
-        if (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-            if (!win32_get_reparse_tag(hFile, &reparse_tag)) {
-                CloseHandle(hFile);
-                return -1;
-            }
-            /* Close the outer open file handle now that we're about to
-               reopen it with different flags. */
-            if (!CloseHandle(hFile))
-                return -1;
-
-            if (traverse) {
-                /* In order to call GetFinalPathNameByHandle we need to open
-                   the file without the reparse handling flag set. */
-                hFile2 = CreateFileW(
-                           path, FILE_READ_ATTRIBUTES, FILE_SHARE_READ,
-                           NULL, OPEN_EXISTING,
-                           FILE_ATTRIBUTE_NORMAL|FILE_FLAG_BACKUP_SEMANTICS,
-                           NULL);
-                if (hFile2 == INVALID_HANDLE_VALUE)
-                    return -1;
-
-                if (!get_target_path(hFile2, &target_path)) {
-                    CloseHandle(hFile2);
-                    return -1;
-                }
-
-                if (!CloseHandle(hFile2)) {
-                    return -1;
-                }
-
-                code = win32_xstat_impl(target_path, result, FALSE);
-                PyMem_RawFree(target_path);
-                return code;
-            }
-        } else
-            CloseHandle(hFile);
+		CloseHandle(hFile);
     }
-    _Py_attribute_data_to_stat(&info, reparse_tag, result);
 
     /* Set S_IEXEC if it is an .exe, .bat, ... */
     dot = wcsrchr(path, '.');
@@ -3424,12 +3372,16 @@ os_link_impl(PyObject *module, path_t *src, path_t *dst, int src_dir_fd,
 #endif
 
 #ifdef MS_WINDOWS
+#ifdef MS_APP
+	Py_RETURN_NOTIMPLEMENTED;
+#else
     Py_BEGIN_ALLOW_THREADS
     result = CreateHardLinkW(dst->wide, src->wide, NULL);
     Py_END_ALLOW_THREADS
 
     if (!result)
         return path_error2(src, dst);
+#endif
 #else
     Py_BEGIN_ALLOW_THREADS
 #ifdef HAVE_LINKAT
@@ -3752,7 +3704,7 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
     PyObject *result;
 
     Py_BEGIN_ALLOW_THREADS
-    hFile = CreateFileW(
+    hFile = _Py_win_create_file(
         path->wide,
         0, /* desired access */
         0, /* share mode */
@@ -3850,6 +3802,9 @@ static PyObject *
 os__getvolumepathname_impl(PyObject *module, path_t *path)
 /*[clinic end generated code: output=804c63fd13a1330b input=722b40565fa21552]*/
 {
+#ifdef MS_APP
+	Py_RETURN_NOTIMPLEMENTED;
+#else
     PyObject *result;
     wchar_t *mountpath=NULL;
     size_t buflen;
@@ -3883,6 +3838,7 @@ os__getvolumepathname_impl(PyObject *module, path_t *path)
 exit:
     PyMem_Free(mountpath);
     return result;
+#endif
 }
 
 #endif /* MS_WINDOWS */
@@ -4730,7 +4686,7 @@ os_utime_impl(PyObject *module, path_t *path, PyObject *times, PyObject *ns,
 
 #ifdef MS_WINDOWS
     Py_BEGIN_ALLOW_THREADS
-    hFile = CreateFileW(path->wide, FILE_WRITE_ATTRIBUTES, 0,
+    hFile = _Py_win_create_file(path->wide, FILE_WRITE_ATTRIBUTES, 0,
                         NULL, OPEN_EXISTING,
                         FILE_FLAG_BACKUP_SEMANTICS, NULL);
     Py_END_ALLOW_THREADS
@@ -7238,7 +7194,7 @@ win_readlink(PyObject *self, PyObject *args, PyObject *kwargs)
 
     /* First get a handle to the reparse point */
     Py_BEGIN_ALLOW_THREADS
-    reparse_point_handle = CreateFileW(
+    reparse_point_handle = _Py_win_create_file(
         path,
         0,
         0,
@@ -7295,14 +7251,11 @@ static BOOLEAN (CALLBACK *Py_CreateSymbolicLinkW)(LPCWSTR, LPCWSTR, DWORD) = NUL
 static int
 check_CreateSymbolicLink(void)
 {
-    HINSTANCE hKernel32;
-    /* only recheck */
-    if (Py_CreateSymbolicLinkW)
-        return 1;
-    hKernel32 = GetModuleHandleW(L"KERNEL32");
-    *(FARPROC*)&Py_CreateSymbolicLinkW = GetProcAddress(hKernel32,
-                                                        "CreateSymbolicLinkW");
-    return Py_CreateSymbolicLinkW != NULL;
+#ifdef MS_DESKTOP
+	return TRUE;
+#else
+	return FALSE;
+#endif
 }
 
 /* Remove the last portion of the path - return 0 on success */
@@ -10778,6 +10731,9 @@ static HINSTANCE (CALLBACK *Py_ShellExecuteW)(HWND, LPCWSTR, LPCWSTR, LPCWSTR,
 static int
 check_ShellExecute()
 {
+#ifdef MS_APP
+	return FALSE;
+#else
     HINSTANCE hShell32;
 
     /* only recheck */
@@ -10798,6 +10754,7 @@ check_ShellExecute()
         }
     }
     return has_ShellExecute;
+#endif
 }
 
 
@@ -11406,6 +11363,7 @@ os_cpu_count_impl(PyObject *module)
 {
     int ncpu = 0;
 #ifdef MS_WINDOWS
+#ifdef MS_DESKTOP
     /* Vista is supported and the GetMaximumProcessorCount API is Win7+
        Need to fallback to Vista behavior if this call isn't present */
     HINSTANCE hKernel32;
@@ -11422,6 +11380,11 @@ os_cpu_count_impl(PyObject *module)
         GetSystemInfo(&sysinfo);
         ncpu = sysinfo.dwNumberOfProcessors;
     }
+#else
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo(&sysinfo);
+	ncpu = sysinfo.dwNumberOfProcessors;
+#endif
 #elif defined(__hpux)
     ncpu = mpctl(MPC_GETNUMSPUS, NULL, NULL);
 #elif defined(HAVE_SYSCONF) && defined(_SC_NPROCESSORS_ONLN)
@@ -11997,7 +11960,6 @@ static PyObject *
 DirEntry_from_find_data(path_t *path, WIN32_FIND_DATAW *dataW)
 {
     DirEntry *entry;
-    BY_HANDLE_FILE_INFORMATION file_info;
     ULONG reparse_tag;
     wchar_t *joined_path;
 
@@ -12033,8 +11995,7 @@ DirEntry_from_find_data(path_t *path, WIN32_FIND_DATAW *dataW)
             goto error;
     }
 
-    find_data_to_file_info(dataW, &file_info, &reparse_tag);
-    _Py_attribute_data_to_stat(&file_info, reparse_tag, &entry->win32_lstat);
+    _Py_find_data_to_stat(dataW, &entry->win32_lstat);
 
     return (PyObject *)entry;
 

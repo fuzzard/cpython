@@ -76,6 +76,16 @@ WIN32 is still required for the locale module.
 #define USE_SOCKET
 #endif
 
+#ifdef MS_WINDOWS
+#	if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+#		define MS_DESKTOP
+#		undef MS_APP
+#	else
+#		undef MS_DEKSTOP
+#		define MS_APP
+#	endif
+#endif
+
 
 /* Compiler specific defines */
 
@@ -133,8 +143,13 @@ WIN32 is still required for the locale module.
 
 /* set the version macros for the windows headers */
 /* Python 3.5+ requires Windows Vista or greater */
+#ifdef MS_DESKTOP
 #define Py_WINVER 0x0600 /* _WIN32_WINNT_VISTA */
 #define Py_NTDDI NTDDI_VISTA
+#else
+#define PY_WINVER 0x0A00 /* _WIN32_WINNT_WIN10 */
+#define PyNTDDI NTDDI_WIN10
+#endif
 
 /* We only set these values when building Python - we don't want to force
    these values on extensions, as that will affect the prototypes and

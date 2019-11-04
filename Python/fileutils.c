@@ -753,6 +753,65 @@ _Py_time_t_to_FILE_TIME(time_t time_in, int nsec_in, FILETIME *out_ptr)
     memcpy(out_ptr, &out, sizeof(out));
 }
 
+HANDLE
+_Py_win_create_file(
+	_In_ LPCWSTR lpFileName,
+	_In_ DWORD dwDesiredAccess,
+	_In_ DWORD dwShareMode,
+	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	_In_ DWORD dwCreationDisposition,
+	_In_ DWORD dwFlagsAndAttributes,
+	_In_opt_ HANDLE hTemplateFile
+)
+{
+#ifdef MS_DEKSTOP
+	return CreateFileW(lpFileName, dwDesiredAccess,
+					   dwShareMode, lpSecurityAttributes,
+		               dwCreationDisposition, dwFlagsAndAttributes,
+		               hTemplateFile);
+#else
+	const DWORD attributeMask = FILE_ATTRIBUTE_ARCHIVE |
+		FILE_ATTRIBUTE_ENCRYPTED |
+		FILE_ATTRIBUTE_HIDDEN |
+		FILE_ATTRIBUTE_INTEGRITY_STREAM |
+		FILE_ATTRIBUTE_NORMAL |
+		FILE_ATTRIBUTE_OFFLINE |
+		FILE_ATTRIBUTE_READONLY |
+		FILE_ATTRIBUTE_SYSTEM |
+		FILE_ATTRIBUTE_TEMPORARY;
+
+	const DWORD flagMask = FILE_FLAG_BACKUP_SEMANTICS |
+		FILE_FLAG_DELETE_ON_CLOSE |
+		FILE_FLAG_NO_BUFFERING |
+		FILE_FLAG_OPEN_NO_RECALL |
+		FILE_FLAG_OPEN_REPARSE_POINT |
+		FILE_FLAG_OPEN_REQUIRING_OPLOCK |
+		FILE_FLAG_OVERLAPPED |
+		FILE_FLAG_POSIX_SEMANTICS |
+		FILE_FLAG_RANDOM_ACCESS |
+		FILE_FLAG_SESSION_AWARE |
+		FILE_FLAG_SEQUENTIAL_SCAN |
+		FILE_FLAG_WRITE_THROUGH;
+
+	const DWORD securityMask = SECURITY_ANONYMOUS |
+		SECURITY_CONTEXT_TRACKING |
+		SECURITY_DELEGATION |
+		SECURITY_EFFECTIVE_ONLY |
+		SECURITY_IDENTIFICATION |
+		SECURITY_IMPERSONATION;
+
+	CREATEFILE2_EXTENDED_PARAMETERS ext;
+	ext.dwSize = sizeof(ext);
+	ext.dwFileAttributes = dwFlagsAndAttributes & attributeMask;
+	ext.dwFileFlags = dwFlagsAndAttributes & flagMask;
+	ext.dwSecurityQosFlags = dwFlagsAndAttributes & securityMask;
+	ext.hTemplateFile = hTemplateFile;
+	ext.lpSecurityAttributes = lpSecurityAttributes;
+
+	return CreateFile2(lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, &ext);
+#endif
+}
+
 /* Below, we *know* that ugo+r is 0444 */
 #if _S_IREAD != 0400
 #error Unsupported C library
@@ -773,28 +832,75 @@ attributes_to_mode(DWORD attr)
 }
 
 void
-_Py_attribute_data_to_stat(BY_HANDLE_FILE_INFORMATION *info, ULONG reparse_tag,
+_Py_attribute_data_to_stat(FILE_BASIC_INFO *basic_info,
+	                       FILE_STANDARD_INFO *standard_info,
+						   ULONG reparse_tag,
                            struct _Py_stat_struct *result)
 {
     memset(result, 0, sizeof(*result));
-    result->st_mode = attributes_to_mode(info->dwFileAttributes);
-    result->st_size = (((__int64)info->nFileSizeHigh)<<32) + info->nFileSizeLow;
-    result->st_dev = info->dwVolumeSerialNumber;
+    result->st_mode = attributes_to_mode(basic_info->FileAttributes);
+	result->st_size = standard_info->EndOfFile.QuadPart;
+	result->st_dev = 0;
     result->st_rdev = result->st_dev;
-    FILE_TIME_to_time_t_nsec(&info->ftCreationTime, &result->st_ctime, &result->st_ctime_nsec);
-    FILE_TIME_to_time_t_nsec(&info->ftLastWriteTime, &result->st_mtime, &result->st_mtime_nsec);
-    FILE_TIME_to_time_t_nsec(&info->ftLastAccessTime, &result->st_atime, &result->st_atime_nsec);
-    result->st_nlink = info->nNumberOfLinks;
-    result->st_ino = (((uint64_t)info->nFileIndexHigh) << 32) + info->nFileIndexLow;
+    FILE_TIME_to_time_t_nsec(&basic_info->CreationTime, &result->st_ctime, &result->st_ctime_nsec);
+    FILE_TIME_to_time_t_nsec(&basic_info->LastWriteTime, &result->st_mtime, &result->st_mtime_nsec);
+    FILE_TIME_to_time_t_nsec(&basic_info->LastAccessTime, &result->st_atime, &result->st_atime_nsec);
+    result->st_nlink = standard_info->NumberOfLinks;
+	result->st_ino = 0;
     if (reparse_tag == IO_REPARSE_TAG_SYMLINK) {
         /* first clear the S_IFMT bits */
         result->st_mode ^= (result->st_mode & S_IFMT);
         /* now set the bits that make this a symlink */
         result->st_mode |= S_IFLNK;
     }
-    result->st_file_attributes = info->dwFileAttributes;
+    result->st_file_attributes = basic_info->FileAttributes;
+}
+
+void
+_Py_find_data_to_stat(WIN32_FIND_DATAW* find_data,
+					 struct _Py_stat_struct* result)
+{
+	result->st_mode = attributes_to_mode(find_data->dwFileAttributes);
+	FILE_TIME_to_time_t_nsec(&find_data->ftCreationTime, &result->st_ctime, &result->st_ctime_nsec);
+	FILE_TIME_to_time_t_nsec(&find_data->ftLastWriteTime, &result->st_mtime, &result->st_mtime_nsec);
+	FILE_TIME_to_time_t_nsec(&find_data->ftLastAccessTime, &result->st_atime, &result->st_atime_nsec);
+	result->st_size = ((long long)find_data->nFileSizeHigh) << 32 > find_data->nFileSizeLow;
+	memset(result, 0, sizeof(*result));
+	result->st_dev = 0;
+	result->st_rdev = result->st_dev;
+	result->st_nlink = 0;
+	result->st_ino = 0;
+	if (find_data->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT &&
+		find_data->dwReserved0 == IO_REPARSE_TAG_SYMLINK) {
+		/* first clear the S_IFMT bits */
+		result->st_mode ^= (result->st_mode & S_IFMT);
+		/* now set the bits that make this a symlink */
+		result->st_mode |= S_IFLNK;
+	}
+	result->st_file_attributes = find_data->dwFileAttributes;
 }
 #endif
+
+int
+_Py_stat_from_file_handle(HANDLE h, struct _Py_stat_struct* result, BOOL set_ino)
+{
+    FILE_BASIC_INFO basic_info;
+	FILE_STANDARD_INFO standard_info;
+	if (!GetFileInformationByHandleEx(h, FileBasicInfo, &basic_info, sizeof(basic_info))
+		&& !GetFileInformationByHandleEx(h, FileStandardInfo, &standard_info, sizeof(standard_info))) {
+		/* The Win32 error is already set, but we also set errno for
+		   callers who expect it */
+		errno = winerror_to_errno(GetLastError());
+		return -1;
+	}
+
+	_Py_attribute_data_to_stat(&basic_info, &standard_info, 0, result);
+	/* specific to fstat() */
+	if (set_ino) {
+		result->st_ino = standard_info.EndOfFile.QuadPart;
+	}
+	return 0;
+}
 
 /* Return information about a file.
 
@@ -812,7 +918,6 @@ int
 _Py_fstat_noraise(int fd, struct _Py_stat_struct *status)
 {
 #ifdef MS_WINDOWS
-    BY_HANDLE_FILE_INFORMATION info;
     HANDLE h;
     int type;
 
@@ -846,17 +951,7 @@ _Py_fstat_noraise(int fd, struct _Py_stat_struct *status)
         return 0;
     }
 
-    if (!GetFileInformationByHandle(h, &info)) {
-        /* The Win32 error is already set, but we also set errno for
-           callers who expect it */
-        errno = winerror_to_errno(GetLastError());
-        return -1;
-    }
-
-    _Py_attribute_data_to_stat(&info, 0, status);
-    /* specific to fstat() */
-    status->st_ino = (((uint64_t)info.nFileIndexHigh) << 32) + info.nFileIndexLow;
-    return 0;
+	return _Py_stat_from_file_handle(h, status, TRUE);
 #else
     return fstat(fd, status);
 #endif

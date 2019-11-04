@@ -44,6 +44,12 @@
    of less than one character */
 #define SMALLBUF 4
 
+#ifdef MS_WINDOWS
+/* defined in fileutils.c */
+PyAPI_FUNC(HANDLE) _Py_win_create_file(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES,
+										DWORD, DWORD, HANDLE);
+#endif
+
 char _get_console_type(HANDLE handle) {
     DWORD mode, peek_count;
 
@@ -368,10 +374,10 @@ _io__WindowsConsoleIO___init___impl(winconsoleio *self, PyObject *nameobj,
            on the specific access. This is required for modern names
            CONIN$ and CONOUT$, which allow reading/writing state as
            well as reading/writing content. */
-        self->handle = CreateFileW(name, GENERIC_READ | GENERIC_WRITE,
+        self->handle = _Py_win_create_file(name, GENERIC_READ | GENERIC_WRITE,
             FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
         if (self->handle == INVALID_HANDLE_VALUE)
-            self->handle = CreateFileW(name, access,
+            self->handle = _Py_win_create_file(name, access,
                 FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
         Py_END_ALLOW_THREADS
 

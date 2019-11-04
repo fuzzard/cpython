@@ -244,6 +244,7 @@ static PPathCchCombineEx _PathCchCombineEx;
 static void
 join(wchar_t *buffer, const wchar_t *stuff)
 {
+#ifdef MS_DESKTOP
     if (_PathCchCombineEx_Initialized == 0) {
         HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
                                          LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -265,6 +266,11 @@ join(wchar_t *buffer, const wchar_t *stuff)
             Py_FatalError("buffer overflow in getpathp.c's join()");
         }
     }
+#else
+	if (!PathCchCombineEx(buffer, buffer, stuff)) {
+		Py_FatalError("buffer overflow in getpathp.c's join()");
+	}
+#endif
 }
 
 static int _PathCchCanonicalizeEx_Initialized = 0;
@@ -278,6 +284,7 @@ static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
         return _Py_INIT_NO_MEMORY();
     }
 
+#ifdef MS_DESKTOP
     if (_PathCchCanonicalizeEx_Initialized == 0) {
         HMODULE pathapi = LoadLibraryExW(L"api-ms-win-core-path-l1-1-0.dll", NULL,
                                          LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -300,6 +307,11 @@ static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
             return _Py_INIT_ERR("buffer overflow in getpathp.c's canonicalize()");
         }
     }
+#else
+	if (FAILED(PathCchCanonicalizeEx(buffer, MAXPATHLEN + 1, path, 0))) {
+		return _Py_INIT_ERR("buffer overflow in getpathp.c's canonicalize()");
+	}
+#endif
     return _Py_INIT_OK();
 }
 
@@ -1058,7 +1070,7 @@ static HANDLE hPython3 = (HANDLE)NULL;
 int
 _Py_CheckPython3(void)
 {
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+#if MS_DESKTOP
     wchar_t py3path[MAXPATHLEN+1];
     wchar_t *s;
     if (python3_checked) {
