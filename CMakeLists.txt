@@ -336,10 +336,10 @@ target_compile_definitions(pythoncore PRIVATE
   Py_BUILD_CORE
   Py_BUILD_CORE_BUILTIN
   Py_ENABLE_SHARED
-  # Py_NO_ENABLE_SHARED
   _Py_HAVE_ZLIB
   MS_DLL_ID="3"
   _WIN32_WINNT=0x0A00
+  WINVER=0x0A00
   NTDDI_VERSION=0x0A000007
 )
 
@@ -347,27 +347,29 @@ target_include_directories(pythoncore PRIVATE
     Include/
     Include/internal
     PC/
-    INTERFACE
-    $<INSTALL_INTERFACE:Include>
 )
 
 target_compile_options(pythoncore PRIVATE
   /ZW
   /EHsc
-  /NODEFAULTLIB
+  /MP
 )
 
-set(LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR}${PROJECT_VERSION_MINOR})
+set(PY_SHARED_LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR})
 set_target_properties(pythoncore PROPERTIES
-  OUTPUT_NAME ${LIB_NAME}
-  OUTPUT_NAME_DEBUG ${LIB_NAME}d
+  OUTPUT_NAME ${PY_SHARED_LIB_NAME}
+  OUTPUT_NAME_DEBUG ${PY_SHARED_LIB_NAME}d
   COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
-  COMPILE_PDB_NAME ${LIB_NAME}
-  COMPILE_PDB_NAME_DEBUG ${LIB_NAME}d
+  COMPILE_PDB_NAME ${PY_SHARED_LIB_NAME}
+  COMPILE_PDB_NAME_DEBUG ${PY_SHARED_LIB_NAME}d
 )
 
 target_link_libraries(pythoncore
   PRIVATE
+    $<$<CONFIG:Debug>:vccorlibd.lib>
+    $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
+    $<$<CONFIG:Debug>:msvcrtd.lib>
+    $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
     zlib::zlibstatic
     ws2_32.lib
     version.lib
@@ -377,10 +379,12 @@ target_link_libraries(pythoncore
 )
 
 target_link_options(pythoncore PRIVATE
-  $<$<CONFIG:Debug>:/DEFAULTLIB:vccorlibd.lib>
-  $<$<CONFIG:RelWithDebInfo>:/DEFAULTLIB:vccorlib.lib>
-  $<$<CONFIG:Debug>:/DEFAULTLIB:msvcrtd.lib>
-  $<$<CONFIG:RelWithDebInfo>:/DEFAULTLIB:msvcrt.lib>
+  $<$<CONFIG:Debug>:/NODEFAULTLIB:vccorlibd>
+  $<$<CONFIG:Debug>:/NODEFAULTLIB:msvcrtd>
+  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:vccorlib>
+  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:msvcrt>
+  /INCREMENTAL:NO
+  /debug
 )
 
 add_library(python SHARED
@@ -396,6 +400,7 @@ target_compile_definitions(python PRIVATE
   _Py_HAVE_ZLIB
   MS_DLL_ID="3"
   _WIN32_WINNT=0x0A00
+  WINVER=0x0A00
   NTDDI_VERSION=0x0A000007
 )
 
@@ -407,11 +412,7 @@ target_include_directories(python PRIVATE
     $<INSTALL_INTERFACE:Include>
 )
 
-target_compile_options(python PRIVATE
-  /NODEFAULTLIB
-)
-
-set(LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR})
+set(LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 set_target_properties(python PROPERTIES
   OUTPUT_NAME ${LIB_NAME}
   OUTPUT_NAME_DEBUG ${LIB_NAME}d
@@ -437,10 +438,12 @@ target_link_libraries(python
 )
 
 target_link_options(python PRIVATE
-  $<$<CONFIG:Debug>:/DEFAULTLIB:vccorlibd.lib>
-  $<$<CONFIG:RelWithDebInfo>:/DEFAULTLIB:vccorlib.lib>
-  $<$<CONFIG:Debug>:/DEFAULTLIB:msvcrtd.lib>
-  $<$<CONFIG:RelWithDebInfo>:/DEFAULTLIB:msvcrt.lib>
+  $<$<CONFIG:Debug>:/NODEFAULTLIB:vccorlibd>
+  $<$<CONFIG:Debug>:/NODEFAULTLIB:msvcrtd>
+  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:vccorlib>
+  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:msvcrt>
+  /INCREMENTAL:NO
+  /debug
 )
 
 
@@ -464,16 +467,18 @@ macro(add_py_module)
   )
 
   target_compile_definitions(${PY_MODULE_NAME} PRIVATE
-      # _USRDLL
-      # Py_BUILD_CORE
-      # Py_BUILD_CORE_BUILTIN
       Py_BUILD_CORE_MODULE
       Py_ENABLE_SHARED
-      # Py_NO_ENABLE_SHARED
       _WIN32_WINNT=0x0A00
+      WINVER=0x0A00
       NTDDI_VERSION=0x0A000007
       MS_DLL_ID="3"
       ${PY_MODULE_DEFINITIONS}
+  )
+
+  target_compile_options(pythoncore PRIVATE
+    /EHsc
+    /MP
   )
 
   target_include_directories(${PY_MODULE_NAME} PRIVATE
@@ -508,10 +513,12 @@ macro(add_py_module)
   )
 
   target_link_options(${PY_MODULE_NAME} PRIVATE
-    $<$<CONFIG:Debug>:/DEFAULTLIB:vccorlibd.lib>
-    $<$<CONFIG:RelWithDebInfo>:/DEFAULTLIB:vccorlib.lib>
-    $<$<CONFIG:Debug>:/DEFAULTLIB:msvcrtd.lib>
-    $<$<CONFIG:RelWithDebInfo>:/DEFAULTLIB:msvcrt.lib>
+    $<$<CONFIG:Debug>:/NODEFAULTLIB:vccorlibd>
+    $<$<CONFIG:Debug>:/NODEFAULTLIB:msvcrtd>
+    $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:vccorlib>
+    $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:msvcrt>
+    /INCREMENTAL:NO
+    /debug
   )
 endmacro()
 
@@ -736,7 +743,7 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion
 )
 
-install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
+install(TARGETS python pythoncore EXPORT ${PROJECT_NAME}
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -796,11 +803,13 @@ install(DIRECTORY
 
 install(FILES
   ${PROJECT_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb
+  ${PROJECT_BINARY_DIR}/RelWithDebInfo/${PY_SHAREDLIB_NAME}.pdb
   DESTINATION lib
   CONFIGURATIONS RelWithDebInfo
 )
 install(FILES
   ${PROJECT_BINARY_DIR}/Debug/${LIB_NAME}d.pdb
+  ${PROJECT_BINARY_DIR}/Debug/${PY_SHARED_LIB_NAME}d.pdb
   DESTINATION lib
   CONFIGURATIONS Debug
 )
