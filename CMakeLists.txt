@@ -388,7 +388,7 @@ target_link_options(pythoncore PRIVATE
 )
 
 add_library(python SHARED
-  # PC/python3.def
+  PC/python3.def
   PC/python3dll.c
 )
 
