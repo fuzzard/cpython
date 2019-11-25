@@ -64,6 +64,11 @@ static PySocketModule_APIObject PySocketModule;
 #include "openssl/rand.h"
 #include "openssl/bio.h"
 #include "openssl/dh.h"
+#include "openssl/ossl_typ.h"
+
+#ifdef MS_DESKTOP
+#include <wincrypt.h>
+#endif
 
 #ifndef HAVE_X509_VERIFY_PARAM_SET1_HOST
 #  ifdef LIBRESSL_VERSION_NUMBER
@@ -1144,7 +1149,7 @@ _create_tuple_for_attribute(ASN1_OBJECT *name, ASN1_STRING *value)
 }
 
 static PyObject *
-_create_tuple_for_X509_NAME (X509_NAME *xname)
+_create_tuple_for_X509_NAME (struct X509_name_st *xname)
 {
     PyObject *dn = NULL;    /* tuple which represents the "distinguished name" */
     PyObject *rdn = NULL;   /* tuple to hold a "relative distinguished name" */

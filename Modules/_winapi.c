@@ -37,8 +37,11 @@
 #include "Python.h"
 #include "structmember.h"
 
+#ifndef WINDOWS_LEAN_AND_MEAN
 #define WINDOWS_LEAN_AND_MEAN
-#include "windows.h"
+#endif
+#include <windows.h>
+#include <winioctl.h>
 #include <crtdbg.h>
 #include "winreparse.h"
 

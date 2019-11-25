@@ -57,6 +57,10 @@ WIN32 is still required for the locale module.
 #define HAVE_STRERROR
 
 #include <io.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winapifamily.h>
 
 #define HAVE_HYPOT
 #define HAVE_STRFTIME
@@ -144,8 +148,8 @@ WIN32 is still required for the locale module.
 /* set the version macros for the windows headers */
 /* Python 3.5+ requires Windows Vista or greater */
 #ifdef MS_DESKTOP
-#define Py_WINVER 0x0600 /* _WIN32_WINNT_VISTA */
-#define Py_NTDDI NTDDI_VISTA
+#define Py_WINVER 0x0601 /* _WIN32_WINNT_VISTA */
+#define Py_NTDDI 0x06010000
 #else
 #define PY_WINVER 0x0A00 /* _WIN32_WINNT_WIN10 */
 #define PyNTDDI NTDDI_WIN10

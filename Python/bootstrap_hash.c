@@ -1,7 +1,7 @@
 #include "Python.h"
 #ifdef MS_WINDOWS
 #  include <windows.h>
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+#ifdef MS_DESKTOP
 /* All sample MSDN wincrypt programs include the header below. It is at least
  * required with Min GW. */
 #  include <wincrypt.h>

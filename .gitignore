@@ -63,9 +63,9 @@ PCbuild/*-pgo
 PCbuild/*.VC.db
 PCbuild/*.VC.opendb
 PCbuild/.vs/
-PCbuild/amd64/
+PCbuild/amd64*/
 PCbuild/obj/
-PCbuild/win32/
+PCbuild/win32*/
 .purify
 Parser/pgen
 Parser/pgen.exe
@@ -110,3 +110,6 @@ Tools/ssl/win32
 .vs/
 .vscode/
 gmon.out
+*.obj
+*.lib
+*.exp

@@ -764,7 +764,7 @@ _Py_win_create_file(
 	_In_opt_ HANDLE hTemplateFile
 )
 {
-#ifdef MS_DEKSTOP
+#ifdef MS_DESKTOP
 	return CreateFileW(lpFileName, dwDesiredAccess,
 					   dwShareMode, lpSecurityAttributes,
 		               dwCreationDisposition, dwFlagsAndAttributes,
@@ -865,7 +865,7 @@ _Py_find_data_to_stat(WIN32_FIND_DATAW* find_data,
 	FILE_TIME_to_time_t_nsec(&find_data->ftLastWriteTime, &result->st_mtime, &result->st_mtime_nsec);
 	FILE_TIME_to_time_t_nsec(&find_data->ftLastAccessTime, &result->st_atime, &result->st_atime_nsec);
 	result->st_size = ((long long)find_data->nFileSizeHigh) << 32 > find_data->nFileSizeLow;
-	memset(result, 0, sizeof(*result));
+	//memset(result, 0, sizeof(*result));
 	result->st_dev = 0;
 	result->st_rdev = result->st_dev;
 	result->st_nlink = 0;

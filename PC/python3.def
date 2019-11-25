@@ -376,7 +376,7 @@ EXPORTS
   PyModule_NewObject=python3.PyModule_NewObject
   PyModule_SetDocString=python3.PyModule_SetDocString
   PyModule_Type=python3.PyModule_Type DATA
-  PyNullImporter_Type=python3.PyNullImporter_Type DATA
+  ;PyNullImporter_Type=python3.PyNullImporter_Type DATA
   PyNumber_Absolute=python3.PyNumber_Absolute
   PyNumber_Add=python3.PyNumber_Add
   PyNumber_And=python3.PyNumber_And
@@ -423,7 +423,7 @@ EXPORTS
   PyODict_SetItem=python3.PyODict_SetItem
   PyODict_Type=python3.PyODict_Type DATA
   PyOS_AfterFork=python3.PyOS_AfterFork
-  PyOS_CheckStack=python3.PyOS_CheckStack
+  ;PyOS_CheckStack=python3.PyOS_CheckStack
   PyOS_FSPath=python3.PyOS_FSPath
   PyOS_InitInterrupts=python3.PyOS_InitInterrupts
   PyOS_InputHook=python3.PyOS_InputHook DATA
@@ -536,7 +536,7 @@ EXPORTS
   PySlice_New=python3.PySlice_New
   PySlice_Type=python3.PySlice_Type DATA
   PySlice_Unpack=python3.PySlice_Unpack
-  PySortWrapper_Type=python3.PySortWrapper_Type DATA
+  ;PySortWrapper_Type=python3.PySortWrapper_Type DATA
   PyInterpreterState_GetID=python3.PyInterpreterState_GetID
   PyState_AddModule=python3.PyState_AddModule
   PyState_FindModule=python3.PyState_FindModule
@@ -776,8 +776,8 @@ EXPORTS
   _PyState_AddModule=python3._PyState_AddModule
   _PyThreadState_Init=python3._PyThreadState_Init
   _PyThreadState_Prealloc=python3._PyThreadState_Prealloc
-  _PyTrash_delete_later=python3._PyTrash_delete_later DATA
-  _PyTrash_delete_nesting=python3._PyTrash_delete_nesting DATA
+  ;_PyTrash_delete_later=python3._PyTrash_delete_later DATA
+  ;_PyTrash_delete_nesting=python3._PyTrash_delete_nesting DATA
   _PyTrash_deposit_object=python3._PyTrash_deposit_object
   _PyTrash_destroy_chain=python3._PyTrash_destroy_chain
   _PyTrash_thread_deposit_object=python3._PyTrash_thread_deposit_object

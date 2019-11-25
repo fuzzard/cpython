@@ -308,6 +308,7 @@ extern int lstat(const char *, struct stat *);
 #include "osdefs.h"
 #include <malloc.h>
 #include <windows.h>
+#include <winioctl.h>
 #include <shellapi.h>   /* for ShellExecute() */
 #include <lmcons.h>     /* for UNLEN */
 #ifdef SE_CREATE_SYMBOLIC_LINK_NAME /* Available starting with Vista */
@@ -1578,7 +1579,7 @@ attributes_from_dir(LPCWSTR pszFile, struct _Py_stat_struct *result, ULONG *repa
     if (hFindFile == INVALID_HANDLE_VALUE)
         return FALSE;
     FindClose(hFindFile);
-    _Py_find_data_to_stat(&FileData, result, reparse_tag);
+    _Py_find_data_to_stat(&FileData, result);
     return TRUE;
 }
 

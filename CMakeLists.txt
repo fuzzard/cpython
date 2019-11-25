@@ -270,7 +270,6 @@ add_library(pythoncore SHARED
     PC/msvcrtmodule.c
     PC/pyconfig.h
     PC/winreg.c
-    PC/uwp_compat.cpp
     Python/_warnings.c
     Python/asdl.c
     Python/ast_opt.c
@@ -331,6 +330,12 @@ add_library(pythoncore SHARED
     Python/wordcode_helpers.h
 )
 
+if(WINDOWS_STORE)
+  target_sources(pythoncore
+    PC/uwp_compat.cpp
+  )
+endif()
+
 target_compile_definitions(pythoncore PRIVATE
   _USRDLL
   Py_BUILD_CORE
@@ -355,13 +360,13 @@ target_compile_options(pythoncore PRIVATE
   /MP
 )
 
-set(PY_SHARED_LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR})
+set(PY_SHARED_LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 set_target_properties(pythoncore PROPERTIES
   OUTPUT_NAME ${PY_SHARED_LIB_NAME}
-  OUTPUT_NAME_DEBUG ${PY_SHARED_LIB_NAME}d
+  # OUTPUT_NAME_DEBUG ${PY_SHARED_LIB_NAME}d
   COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
-  COMPILE_PDB_NAME ${PY_SHARED_LIB_NAME}
-  COMPILE_PDB_NAME_DEBUG ${PY_SHARED_LIB_NAME}d
+  COMPILE_PDB_NAME ${PY_SHARED_LIB_NAME}.pdb
+  # COMPILE_PDB_NAME_DEBUG ${PY_SHARED_LIB_NAME}d.pdb
 )
 
 target_link_libraries(pythoncore
@@ -412,13 +417,13 @@ target_include_directories(python PRIVATE
     $<INSTALL_INTERFACE:Include>
 )
 
-set(LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
+set(LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR})
 set_target_properties(python PROPERTIES
   OUTPUT_NAME ${LIB_NAME}
-  OUTPUT_NAME_DEBUG ${LIB_NAME}d
+  # OUTPUT_NAME_DEBUG ${LIB_NAME}d
   COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
   COMPILE_PDB_NAME ${LIB_NAME}
-  COMPILE_PDB_NAME_DEBUG ${LIB_NAME}d
+  # COMPILE_PDB_NAME_DEBUG ${LIB_NAME}d
 )
 
 target_link_libraries(python
@@ -489,11 +494,11 @@ macro(add_py_module)
   )
 
   set_target_properties(${PY_MODULE_NAME} PROPERTIES
-    OUTPUT_NAME_DEBUG ${PY_MODULE_NAME}d
+    # OUTPUT_NAME_DEBUG ${PY_MODULE_NAME}d
     SUFFIX ".pyd"
     COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
     COMPILE_PDB_NAME ${PY_MODULE_NAME}
-    COMPILE_PDB_NAME_DEBUG ${PY_MODULE_NAME}d
+    # COMPILE_PDB_NAME_DEBUG ${PY_MODULE_NAME}d
   )
 
   target_link_libraries(${PY_MODULE_NAME}
@@ -747,12 +752,12 @@ install(TARGETS python pythoncore EXPORT ${PROJECT_NAME}
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  INCLUDES DESTINATION include/${LIB_NAME}
+  INCLUDES DESTINATION include/${PY_SHARED_LIB_NAME}
 )
 
 install(DIRECTORY
   ${CMAKE_CURRENT_SOURCE_DIR}/Include/
-  DESTINATION include/${LIB_NAME}
+  DESTINATION include/${PY_SHARED_LIB_NAME}
 )
 
 install(FILES
@@ -773,7 +778,7 @@ install(FILES
   CONFIGURATIONS RelWithDebInfo
 )
 install(FILES
-  ${PROJECT_BINARY_DIR}/Debug/${PYTHON_MODULE}d.pdb
+  ${PROJECT_BINARY_DIR}/Debug/${PYTHON_MODULE}.pdb
   DESTINATION lib
   CONFIGURATIONS Debug
 )
@@ -803,13 +808,13 @@ install(DIRECTORY
 
 install(FILES
   ${PROJECT_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb
-  ${PROJECT_BINARY_DIR}/RelWithDebInfo/${PY_SHAREDLIB_NAME}.pdb
+  ${PROJECT_BINARY_DIR}/RelWithDebInfo/${PY_SHARED_LIB_NAME}.pdb
   DESTINATION lib
   CONFIGURATIONS RelWithDebInfo
 )
 install(FILES
-  ${PROJECT_BINARY_DIR}/Debug/${LIB_NAME}d.pdb
-  ${PROJECT_BINARY_DIR}/Debug/${PY_SHARED_LIB_NAME}d.pdb
+  ${PROJECT_BINARY_DIR}/Debug/${LIB_NAME}.pdb
+  ${PROJECT_BINARY_DIR}/Debug/${PY_SHARED_LIB_NAME}.pdb
   DESTINATION lib
   CONFIGURATIONS Debug
 )

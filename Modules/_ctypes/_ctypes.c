@@ -105,8 +105,11 @@ bytes(cdata)
 #include "structmember.h"
 
 #include <ffi.h>
-#ifdef MS_WIN32
-#include <windows.h>
+#ifdef MS_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
 #include <malloc.h>
 #ifndef IS_INTRESOURCE
 #define IS_INTRESOURCE(x) (((size_t)(x) >> 16) == 0)
