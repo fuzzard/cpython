@@ -7,6 +7,7 @@
 #include <fci.h>
 #include <fcntl.h>
 #include <windows.h>
+#include <wtypes.h>
 #include <msi.h>
 #include <msiquery.h>
 #include <msidefs.h>

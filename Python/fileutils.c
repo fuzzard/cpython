@@ -743,6 +743,18 @@ FILE_TIME_to_time_t_nsec(FILETIME *in_ptr, time_t *time_out, int* nsec_out)
     *time_out = Py_SAFE_DOWNCAST((in / 10000000) - secs_between_epochs, __int64, time_t);
 }
 
+static void
+LARGE_INTEGER_to_time_t_nsec(LARGE_INTEGER *in_ptr, time_t *time_out, int* nsec_out)
+{
+    /* XXX endianness. Shouldn't matter, as all Windows implementations are little-endian */
+    /* Cannot simply cast and dereference in_ptr,
+       since it might not be aligned properly */
+    __int64 in;
+    memcpy(&in, in_ptr, sizeof(in));
+    *nsec_out = (int)(in_ptr->QuadPart % 10000000) * 100; /* FILETIME is in units of 100 nsec. */
+    *time_out = Py_SAFE_DOWNCAST((in_ptr->QuadPart / 10000000) - secs_between_epochs, __int64, time_t);
+}
+
 void
 _Py_time_t_to_FILE_TIME(time_t time_in, int nsec_in, FILETIME *out_ptr)
 {
@@ -842,9 +854,9 @@ _Py_attribute_data_to_stat(FILE_BASIC_INFO *basic_info,
 	result->st_size = standard_info->EndOfFile.QuadPart;
 	result->st_dev = 0;
     result->st_rdev = result->st_dev;
-    FILE_TIME_to_time_t_nsec(&basic_info->CreationTime, &result->st_ctime, &result->st_ctime_nsec);
-    FILE_TIME_to_time_t_nsec(&basic_info->LastWriteTime, &result->st_mtime, &result->st_mtime_nsec);
-    FILE_TIME_to_time_t_nsec(&basic_info->LastAccessTime, &result->st_atime, &result->st_atime_nsec);
+    LARGE_INTEGER_to_time_t_nsec(&basic_info->CreationTime, &result->st_ctime, &result->st_ctime_nsec);
+    LARGE_INTEGER_to_time_t_nsec(&basic_info->LastWriteTime, &result->st_mtime, &result->st_mtime_nsec);
+    LARGE_INTEGER_to_time_t_nsec(&basic_info->LastAccessTime, &result->st_atime, &result->st_atime_nsec);
     result->st_nlink = standard_info->NumberOfLinks;
 	result->st_ino = 0;
     if (reparse_tag == IO_REPARSE_TAG_SYMLINK) {
@@ -860,12 +872,12 @@ void
 _Py_find_data_to_stat(WIN32_FIND_DATAW* find_data,
 					 struct _Py_stat_struct* result)
 {
+	memset(result, 0, sizeof(*result));
 	result->st_mode = attributes_to_mode(find_data->dwFileAttributes);
 	FILE_TIME_to_time_t_nsec(&find_data->ftCreationTime, &result->st_ctime, &result->st_ctime_nsec);
 	FILE_TIME_to_time_t_nsec(&find_data->ftLastWriteTime, &result->st_mtime, &result->st_mtime_nsec);
 	FILE_TIME_to_time_t_nsec(&find_data->ftLastAccessTime, &result->st_atime, &result->st_atime_nsec);
 	result->st_size = ((long long)find_data->nFileSizeHigh) << 32 > find_data->nFileSizeLow;
-	//memset(result, 0, sizeof(*result));
 	result->st_dev = 0;
 	result->st_rdev = result->st_dev;
 	result->st_nlink = 0;
@@ -891,7 +903,7 @@ _Py_stat_from_file_handle(HANDLE h, struct _Py_stat_struct* result, BOOL set_ino
 		/* The Win32 error is already set, but we also set errno for
 		   callers who expect it */
 		errno = winerror_to_errno(GetLastError());
-		return -1;
+		return FALSE;
 	}
 
 	_Py_attribute_data_to_stat(&basic_info, &standard_info, 0, result);
@@ -899,7 +911,7 @@ _Py_stat_from_file_handle(HANDLE h, struct _Py_stat_struct* result, BOOL set_ino
 	if (set_ino) {
 		result->st_ino = standard_info.EndOfFile.QuadPart;
 	}
-	return 0;
+	return TRUE;
 }
 
 /* Return information about a file.

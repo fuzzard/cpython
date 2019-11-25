@@ -1070,7 +1070,6 @@ static HANDLE hPython3 = (HANDLE)NULL;
 int
 _Py_CheckPython3(void)
 {
-#ifdef MS_DESKTOP
     wchar_t py3path[MAXPATHLEN+1];
     wchar_t *s;
     if (python3_checked) {
@@ -1086,7 +1085,11 @@ _Py_CheckPython3(void)
         s = py3path;
     }
     wcscpy(s, L"\\python3.dll");
+#ifdef MS_DESKTOP
     hPython3 = LoadLibraryExW(py3path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#else
+	hPython3 = LoadPackagedLibrary(py3path, 0);
+#endif
     if (hPython3 != NULL) {
         return 1;
     }
@@ -1094,9 +1097,10 @@ _Py_CheckPython3(void)
     /* Check sys.prefix\DLLs\python3.dll */
     wcscpy(py3path, Py_GetPrefix());
     wcscat(py3path, L"\\DLLs\\python3.dll");
+#ifdef MS_DESKTOP
     hPython3 = LoadLibraryExW(py3path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-    return hPython3 != NULL;
 #else
-	return 0;
+	hPython3 = LoadPackagedLibrary(py3path, 0);
 #endif
+    return hPython3 != NULL;
 }

@@ -407,6 +407,17 @@ _winapi_ConnectNamedPipe_impl(PyObject *module, HANDLE handle,
     Py_RETURN_NONE;
 }
 
+HANDLE
+_Py_win_create_file(
+	_In_ LPCWSTR lpFileName,
+	_In_ DWORD dwDesiredAccess,
+	_In_ DWORD dwShareMode,
+	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	_In_ DWORD dwCreationDisposition,
+	_In_ DWORD dwFlagsAndAttributes,
+	_In_opt_ HANDLE hTemplateFile
+);
+
 /*[clinic input]
 _winapi.CreateFile -> HANDLE
 
@@ -421,7 +432,7 @@ _winapi.CreateFile -> HANDLE
 [clinic start generated code]*/
 
 static HANDLE
-_winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
+_winapi_CreateFile_impl(PyObject *module, LPCWSTR file_name,
                         DWORD desired_access, DWORD share_mode,
                         LPSECURITY_ATTRIBUTES security_attributes,
                         DWORD creation_disposition,
@@ -431,19 +442,10 @@ _winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
     HANDLE handle;
 
 	Py_BEGIN_ALLOW_THREADS
-#ifdef MS_DESKTOP
-		handle = CreateFile(file_name, desired_access,
-			share_mode, security_attributes,
-			creation_disposition,
-			flags_and_attributes, template_file);
-#else
-		CREATEFILE2_EXTENDED_PARAMETERS extended;
-		extended.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
-		extended.hTemplateFile = template_file;
-		extended.lpSecurityAttributes = security_attributes;
-		handle = CreateFile2(file_name, desired_access,
-			share_mode, creation_disposition, &extended);
-#endif
+	handle = _Py_win_create_file(file_name, desired_access,
+		share_mode, security_attributes,
+		creation_disposition,
+		flags_and_attributes, template_file);
     Py_END_ALLOW_THREADS
 
     if (handle == INVALID_HANDLE_VALUE)
@@ -1284,8 +1286,7 @@ _winapi_GetVersion_impl(PyObject *module)
 #pragma warning(disable:4996)
 
 {
-	DWORD version;
-	OSVERSIONINFOEXW version_info;
+	OSVERSIONINFOW version_info;
 	version_info.dwOSVersionInfoSize = sizeof(version_info);
 
 	if (GetVersionExW(&version_info)) {
