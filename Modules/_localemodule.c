@@ -391,31 +391,31 @@ exit:
 static PyObject*
 PyLocale_getdefaultlocale(PyObject* self)
 {
-    char encoding[100];
-    char locale[100];
+    wchar_t encoding[100];
+    wchar_t locale[100];
 
-    PyOS_snprintf(encoding, sizeof(encoding), "cp%u", GetACP());
+    PyOS_snwprintf(encoding, sizeof(encoding), L"cp%u", GetACP());
 
-    if (GetLocaleInfo(LOCALE_USER_DEFAULT,
+    if (GetLocaleInfoW(LOCALE_USER_DEFAULT,
                       LOCALE_SISO639LANGNAME,
-                      locale, sizeof(locale))) {
-        Py_ssize_t i = strlen(locale);
+                      locale,  sizeof(locale) / sizeof(wchar_t))) {
+        Py_ssize_t i = wcslen(locale);
         locale[i++] = '_';
-        if (GetLocaleInfo(LOCALE_USER_DEFAULT,
+        if (GetLocaleInfoW(LOCALE_USER_DEFAULT,
                           LOCALE_SISO3166CTRYNAME,
-                          locale+i, (int)(sizeof(locale)-i)))
-            return Py_BuildValue("ss", locale, encoding);
+                          locale+i, (int)(sizeof(locale)-i) / sizeof(wchar_t)))
+            return Py_BuildValue("uu", locale, encoding);
     }
 
     /* If we end up here, this windows version didn't know about
        ISO639/ISO3166 names (it's probably Windows 95).  Return the
        Windows language identifier instead (a hexadecimal number) */
 
-    locale[0] = '0';
-    locale[1] = 'x';
-    if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IDEFAULTLANGUAGE,
+    locale[0] = L'0';
+    locale[1] = L'x';
+    if (GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_IDEFAULTLANGUAGE,
                       locale+2, sizeof(locale)-2)) {
-        return Py_BuildValue("ss", locale, encoding);
+        return Py_BuildValue("uu", locale, encoding);
     }
 
     /* cannot determine the language code (very unlikely) */

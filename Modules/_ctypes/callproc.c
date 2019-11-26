@@ -1277,7 +1277,7 @@ static PyObject *load_library(PyObject *self, PyObject *args)
 #ifdef MS_DESKTOP
 	hMod = LoadLibraryW(name);
 #else
-	hMod = LoadPackagedLibrary(name);
+	hMod = LoadPackagedLibrary(name, 0);
 #endif
     Py_END_ALLOW_THREADS
 

@@ -331,7 +331,7 @@ add_library(pythoncore SHARED
 )
 
 if(WINDOWS_STORE)
-  target_sources(pythoncore
+  target_sources(pythoncore PRIVATE
     PC/uwp_compat.cpp
   )
 endif()
@@ -767,9 +767,9 @@ install(FILES
 
 foreach(PYTHON_MODULE IN LISTS PYTHON_MODULES)
   install(TARGETS ${PYTHON_MODULE}
-    RUNTIME DESTINATION lib/python/DLLs
+    RUNTIME DESTINATION bin/python/DLLs
     ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib/python/DLLs
+    LIBRARY DESTINATION lib
   )
 
 install(FILES
@@ -784,19 +784,9 @@ install(FILES
 )
 endforeach(PYTHON_MODULE IN LISTS PYTHON_MODULES)
 
-# install(DIRECTORY
-#   ${CMAKE_CURRENT_BINARY_DIR}
-#   DESTINATION lib/python/DLLs
-#   FILES_MATCHING PATTERN *.pyd
-#   PATTERN .vs EXCLUDE
-#   PATTERN amd64 EXCLUDE
-#   PATTERN Debug EXCLUDE
-#   PATTERN obj EXCLUDE
-# )
-
 install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/Lib
-    DESTINATION lib/python
+    DESTINATION bin/python
     PATTERN plat-* EXCLUDE
     PATTERN msilib EXCLUDE
     PATTERN lib-tk EXCLUDE
@@ -804,6 +794,7 @@ install(DIRECTORY
     PATTERN bsddb EXCLUDE
     PATTERN *test EXCLUDE
     PATTERN idlelib EXCLUDE
+    PATTERN __pycache__ EXCLUDE
 )
 
 install(FILES

@@ -66,7 +66,7 @@ static PySocketModule_APIObject PySocketModule;
 #include "openssl/dh.h"
 #include "openssl/ossl_typ.h"
 
-#ifdef MS_DESKTOP
+#ifdef MS_WINDOWS
 #include <wincrypt.h>
 #endif
 

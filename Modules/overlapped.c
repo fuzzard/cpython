@@ -280,7 +280,7 @@ overlapped_RegisterWaitWithQueue(PyObject *self, PyObject *args)
 
     *pdata = data;
 
-    if (!RegisterWaitForSingleObject(
+    if (!RegisterWaitForSingleObjectEx(
             &NewWaitObject, Object, (WAITORTIMERCALLBACK)PostToQueueCallback,
             pdata, Milliseconds,
             WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE))
@@ -1306,6 +1306,17 @@ PyDoc_STRVAR(
     "ConnectPipe(addr) -> pipe_handle\n\n"
     "Connect to the pipe for asynchronous I/O (overlapped).");
 
+PyAPI_FUNC(HANDLE)
+_Py_win_create_file(
+	_In_ LPCWSTR lpFileName,
+	_In_ DWORD dwDesiredAccess,
+	_In_ DWORD dwShareMode,
+	_In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	_In_ DWORD dwCreationDisposition,
+	_In_ DWORD dwFlagsAndAttributes,
+	_In_opt_ HANDLE hTemplateFile
+);
+
 static PyObject *
 ConnectPipe(OverlappedObject *self, PyObject *args)
 {
@@ -1321,7 +1332,7 @@ ConnectPipe(OverlappedObject *self, PyObject *args)
         return NULL;
 
     Py_BEGIN_ALLOW_THREADS
-    PipeHandle = CreateFileW(Address,
+    PipeHandle = _Py_win_create_file(Address,
                              GENERIC_READ | GENERIC_WRITE,
                              0, NULL, OPEN_EXISTING,
                              FILE_FLAG_OVERLAPPED, NULL);

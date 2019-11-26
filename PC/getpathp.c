@@ -90,6 +90,7 @@
 
 #include <windows.h>
 #include <shlwapi.h>
+#include <PathCch.h>
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -267,16 +268,18 @@ join(wchar_t *buffer, const wchar_t *stuff)
         }
     }
 #else
-	if (!PathCchCombineEx(buffer, buffer, stuff)) {
+	if (FAILED(PathCchCombineEx(buffer, MAXPATHLEN+1, buffer, stuff, 0))) {
 		Py_FatalError("buffer overflow in getpathp.c's join()");
 	}
 #endif
 }
 
+#ifdef MS_DESKTOP
 static int _PathCchCanonicalizeEx_Initialized = 0;
 typedef HRESULT(__stdcall *PPathCchCanonicalizeEx) (PWSTR pszPathOut, size_t cchPathOut,
     PCWSTR pszPathIn, unsigned long dwFlags);
 static PPathCchCanonicalizeEx _PathCchCanonicalizeEx;
+#endif
 
 static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
 {

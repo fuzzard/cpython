@@ -102,7 +102,7 @@ typedef struct {
 #ifdef MS_WINDOWS
     HANDLE      map_handle;
     HANDLE      file_handle;
-    char *      tagname;
+    wchar_t *      tagname;
 #endif
 
 #ifdef UNIX
@@ -684,7 +684,7 @@ mmap__sizeof__method(mmap_object *self, void *unused)
 
     res = _PyObject_SIZE(Py_TYPE(self));
     if (self->tagname)
-        res += strlen(self->tagname) + 1;
+        res += wcslen(self->tagname) + 1;
     return PyLong_FromSsize_t(res);
 }
 #endif
@@ -1342,7 +1342,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
             Py_DECREF(m_obj);
             return NULL;
         }
-        strcpy(m_obj->tagname, tagname);
+        wcscpy(m_obj->tagname, tagname);
     }
     else
         m_obj->tagname = NULL;
@@ -1354,7 +1354,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
     off_lo = (DWORD)(offset & 0xFFFFFFFF);
     /* For files, it would be sufficient to pass 0 as size.
        For anonymous maps, we have to pass the size explicitly. */
-    m_obj->map_handle = CreateFileMapping(m_obj->file_handle,
+    m_obj->map_handle = CreateFileMappingW(m_obj->file_handle,
                                           NULL,
                                           flProtect,
                                           size_hi,

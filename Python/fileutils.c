@@ -765,7 +765,7 @@ _Py_time_t_to_FILE_TIME(time_t time_in, int nsec_in, FILETIME *out_ptr)
     memcpy(out_ptr, &out, sizeof(out));
 }
 
-HANDLE
+PyAPI_FUNC(HANDLE)
 _Py_win_create_file(
 	_In_ LPCWSTR lpFileName,
 	_In_ DWORD dwDesiredAccess,

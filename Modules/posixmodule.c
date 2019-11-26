@@ -162,6 +162,7 @@ corresponding Unix manual entries for more information on calls.");
 #include <process.h>
 #else
 #ifdef _MSC_VER         /* Microsoft compiler */
+#ifdef MS_DESKTOP
 #define HAVE_GETPPID    1
 #define HAVE_GETLOGIN   1
 #define HAVE_SPAWNV     1
@@ -173,6 +174,7 @@ corresponding Unix manual entries for more information on calls.");
 #define HAVE_CWAIT      1
 #define HAVE_FSYNC      1
 #define fsync _commit
+#endif
 #else
 /* Unix functions that the configure script doesn't check for */
 #define HAVE_EXECV      1
@@ -1620,10 +1622,8 @@ static int
 win32_xstat_impl(const wchar_t *path, struct _Py_stat_struct *result,
                  BOOL traverse)
 {
-    int code;
-    HANDLE hFile, hFile2;
+    HANDLE hFile;
     ULONG reparse_tag = 0;
-    wchar_t *target_path;
     const wchar_t *dot;
 
 	DWORD attributes =
@@ -1655,7 +1655,7 @@ win32_xstat_impl(const wchar_t *path, struct _Py_stat_struct *result,
             return -1;
         /* Could not get attributes on open file. Fall back to
            reading the directory. */
-        if (!attributes_from_dir(path, &result, &reparse_tag)) {
+        if (!attributes_from_dir(path, result, &reparse_tag)) {
             /* Very strange. This should not fail now */
             return -1;
         }
@@ -5102,6 +5102,9 @@ static PyObject *
 os_spawnv_impl(PyObject *module, int mode, path_t *path, PyObject *argv)
 /*[clinic end generated code: output=71cd037a9d96b816 input=43224242303291be]*/
 {
+#ifdef MS_APP
+	Py_RETURN_NOTIMPLEMENTED;
+#else
     EXECV_CHAR **argvlist;
     int i;
     Py_ssize_t argc;
@@ -5172,6 +5175,7 @@ os_spawnv_impl(PyObject *module, int mode, path_t *path, PyObject *argv)
         return posix_error();
     else
         return Py_BuildValue(_Py_PARSE_INTPTR, spawnval);
+#endif
 }
 
 /*[clinic input]
@@ -11961,7 +11965,6 @@ static PyObject *
 DirEntry_from_find_data(path_t *path, WIN32_FIND_DATAW *dataW)
 {
     DirEntry *entry;
-    ULONG reparse_tag;
     wchar_t *joined_path;
 
     entry = PyObject_New(DirEntry, &DirEntryType);

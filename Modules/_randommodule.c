@@ -222,7 +222,7 @@ random_seed_time_pid(RandomObject *self)
     key[0] = (PY_UINT32_T)(now & 0xffffffffU);
     key[1] = (PY_UINT32_T)(now >> 32);
 
-    key[2] = (PY_UINT32_T)getpid();
+    key[2] = (PY_UINT32_T)_getpid();
 
     now = _PyTime_GetMonotonicClock();
     key[3] = (PY_UINT32_T)(now & 0xffffffffU);
