@@ -388,6 +388,9 @@ exit:
 #endif
 
 #if defined(MS_WINDOWS)
+int
+PyOS_snwprintf(wchar_t*, size_t, const wchar_t*, ...);
+
 static PyObject*
 PyLocale_getdefaultlocale(PyObject* self)
 {

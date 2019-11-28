@@ -482,7 +482,7 @@ mmap_resize_method(mmap_object *self,
         /* Change the size of the file */
         SetEndOfFile(self->file_handle);
         /* Create another mapping object and remap the file view */
-        self->map_handle = CreateFileMapping(
+        self->map_handle = CreateFileMappingW(
             self->file_handle,
             NULL,
             PAGE_READWRITE,
@@ -1198,7 +1198,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
     DWORD off_lo;       /* lower 32 bits of offset */
     DWORD size_hi;      /* upper 32 bits of size */
     DWORD size_lo;      /* lower 32 bits of size */
-    const char *tagname = "";
+    const wchar_t *tagname = L"";
     DWORD dwErr = 0;
     int fileno;
     HANDLE fh = 0;
@@ -1335,8 +1335,8 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
     m_obj->weakreflist = NULL;
     m_obj->exports = 0;
     /* set the tag name */
-    if (tagname != NULL && *tagname != '\0') {
-        m_obj->tagname = PyMem_Malloc(strlen(tagname)+1);
+    if (tagname != NULL && *tagname != L'\0') {
+        m_obj->tagname = PyMem_Malloc((wcslen(tagname)+1) * sizeof(wchar_t));
         if (m_obj->tagname == NULL) {
             PyErr_NoMemory();
             Py_DECREF(m_obj);

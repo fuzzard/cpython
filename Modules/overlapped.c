@@ -107,7 +107,6 @@ initialize_function_pointers(void)
     GUID GuidConnectEx = WSAID_CONNECTEX;
     GUID GuidDisconnectEx = WSAID_DISCONNECTEX;
     GUID GuidTransmitFile = WSAID_TRANSMITFILE;
-    HINSTANCE hKernel32;
     SOCKET s;
     DWORD dwBytes;
 
@@ -280,7 +279,7 @@ overlapped_RegisterWaitWithQueue(PyObject *self, PyObject *args)
 
     *pdata = data;
 
-    if (!RegisterWaitForSingleObjectEx(
+    if (!RegisterWaitForSingleObject(
             &NewWaitObject, Object, (WAITORTIMERCALLBACK)PostToQueueCallback,
             pdata, Milliseconds,
             WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE))

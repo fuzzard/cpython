@@ -729,23 +729,6 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
     }
 }
 
-#if defined(MS_WIN32) && !defined(_WIN32_WCE)
-/*
-Per: https://msdn.microsoft.com/en-us/library/7572ztz4.aspx
-To be returned by value in RAX, user-defined types must have a length 
-of 1, 2, 4, 8, 16, 32, or 64 bits
-*/
-int can_return_struct_as_int(size_t s)
-{
-  return s == 1 || s == 2 || s == 4;
-}
-
-int can_return_struct_as_sint64(size_t s)
-{
-  return s == 8;
-}
-#endif
-
 ffi_type *_ctypes_get_ffi_type(PyObject *obj)
 {
     StgDictObject *dict;
@@ -759,9 +742,10 @@ ffi_type *_ctypes_get_ffi_type(PyObject *obj)
        It returns small structures in registers
     */
     if (dict->ffi_type_pointer.type == FFI_TYPE_STRUCT) {
-        if (can_return_struct_as_int(dict->ffi_type_pointer.size))
+		size_t size = dict->ffi_type_pointer.size;
+        if (size == 1 || size == 2 || size == 4)
             return &ffi_type_sint32;
-        else if (can_return_struct_as_sint64 (dict->ffi_type_pointer.size))
+        else if (size == 8)
             return &ffi_type_sint64;
     }
 #endif

@@ -102,19 +102,6 @@ Done:
     return len;
 #undef _PyOS_vsnprintf_EXTRA_SPACE
 }
-
-int
-PyOS_snwprintf(wchar_t *str, size_t size, const wchar_t *format, ...)
-{
-    int rc;
-    va_list va;
-
-    va_start(va, format);
-    rc = PyOS_vsnwprintf(str, size, format, va);
-    va_end(va);
-    return rc;
-}
-
 int
 PyOS_vsnwprintf(wchar_t *str, size_t size, const wchar_t *format, va_list va)
 {
@@ -168,3 +155,16 @@ Done:
     return len;
 #undef _PyOS_vsnprintf_EXTRA_SPACE
 }
+
+int
+PyOS_snwprintf(wchar_t *str, size_t size, const wchar_t *format, ...)
+{
+    int rc;
+    va_list va;
+
+    va_start(va, format);
+    rc = PyOS_vsnwprintf(str, size, format, va);
+    va_end(va);
+    return rc;
+}
+

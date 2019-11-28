@@ -270,6 +270,7 @@ add_library(pythoncore SHARED
     PC/msvcrtmodule.c
     PC/pyconfig.h
     PC/winreg.c
+    PCbuild/python.natvis
     Python/_warnings.c
     Python/asdl.c
     Python/ast_opt.c
