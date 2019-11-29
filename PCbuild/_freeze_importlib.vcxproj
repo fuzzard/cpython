@@ -104,8 +104,8 @@
     
     <Warning Text="@(_Updated->'%(Filename)%(Extension)',', ') updated. You will need to rebuild pythoncore to see the changes."
              Condition="'@(_Updated)' != '' and $(Configuration) == 'Debug'" />
-    <Error Text="@(_Updated->'%(Filename)%(Extension)',', ') updated. You will need to rebuild pythoncore to see the changes."
-           Condition="'@(_Updated)' != '' and $(Configuration) == 'Release'" />
+    <!-- <Error Text="@(_Updated->'%(Filename)%(Extension)',', ') updated. You will need to rebuild pythoncore to see the changes."
+           Condition="'@(_Updated)' != '' and $(Configuration) == 'Release'" /> -->
   </Target>
   <Target Name="RebuildImportLib" AfterTargets="AfterBuild" Condition="$(Configuration) == 'Debug' or $(Configuration) == 'Release'"
           DependsOnTargets="_RebuildImportLib">

@@ -459,7 +459,6 @@
   <Target Name="_WarnAboutZlib" BeforeTargets="PrepareForBuild" Condition="!$(IncludeExternals)">
     <Warning Text="Not including zlib is not a supported configuration." />
   </Target>
-
   <PropertyGroup>
     <VCRedistDir>$(VCInstallDir)\Redist\MSVC\$(VCToolsRedistVersion)\</VCRedistDir>
     <VCRedistDir Condition="$(Platform) == 'Win32'">$(VCRedistDir)x86\</VCRedistDir>
@@ -467,6 +466,9 @@
   </PropertyGroup>
   <ItemGroup Condition="$(VCInstallDir) != ''">
     <VCRuntimeDLL Include="$(VCRedistDir)\**\vcruntime*.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="python.natvis" />
   </ItemGroup>
   <Target Name="_CopyVCRuntime" AfterTargets="Build" Inputs="@(VCRuntimeDLL)" Outputs="$(OutDir)%(Filename)%(Extension)">
     <Copy SourceFiles="%(VCRuntimeDLL.FullPath)" DestinationFolder="$(OutDir)" />

@@ -81,7 +81,7 @@ class MetaPathFinder(Finder):
         """
 
 _register(MetaPathFinder, machinery.BuiltinImporter, machinery.FrozenImporter,
-          machinery.PathFinder, machinery.WindowsRegistryFinder)
+          machinery.PathFinder)
 
 
 class PathEntryFinder(Finder):

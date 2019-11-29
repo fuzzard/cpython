@@ -10,6 +10,15 @@ find_package(bzip2 NO_MODULE REQUIRED)
 find_package(libffi NO_MODULE REQUIRED)
 find_package(xz NO_MODULE REQUIRED)
 find_package(sqlite3 NO_MODULE REQUIRED)
+find_program(msbuild REQUIRED)
+
+add_custom_target(_generate_import_h
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/PCbuild/get_externals.bat
+  COMMAND "${CMAKE_VS_MSBUILD_COMMAND}" ${CMAKE_CURRENT_SOURCE_DIR}/PCbuild/pcbuild.sln /p:Configuration=Release /p:Platform=x64 /t:_freeze_importlib
+  BYPRODUCTS
+	${CMAKE_CURRENT_SOURCE_DIR}/Python/import.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Python/import_external.h
+)
 
 add_library(pythoncore SHARED
     Include/abstract.h
@@ -336,6 +345,8 @@ if(WINDOWS_STORE)
     PC/uwp_compat.cpp
   )
 endif()
+
+add_dependencies(pythoncore _generate_import_h)
 
 target_compile_definitions(pythoncore PRIVATE
   _USRDLL

@@ -896,10 +896,10 @@ _Py_find_data_to_stat(WIN32_FIND_DATAW* find_data,
 int
 _Py_stat_from_file_handle(HANDLE h, struct _Py_stat_struct* result, BOOL set_ino)
 {
-    FILE_BASIC_INFO basic_info;
-	FILE_STANDARD_INFO standard_info;
+	FILE_BASIC_INFO basic_info = { 0 };
+	FILE_STANDARD_INFO standard_info = { 0 };
 	if (!GetFileInformationByHandleEx(h, FileBasicInfo, &basic_info, sizeof(basic_info))
-		&& !GetFileInformationByHandleEx(h, FileStandardInfo, &standard_info, sizeof(standard_info))) {
+		|| !GetFileInformationByHandleEx(h, FileStandardInfo, &standard_info, sizeof(standard_info))) {
 		/* The Win32 error is already set, but we also set errno for
 		   callers who expect it */
 		errno = winerror_to_errno(GetLastError());

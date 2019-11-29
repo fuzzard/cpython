@@ -55,8 +55,7 @@ class InheritanceTests:
 
 class MetaPathFinder(InheritanceTests):
     superclass_names = ['Finder']
-    subclass_names = ['BuiltinImporter', 'FrozenImporter', 'PathFinder',
-                      'WindowsRegistryFinder']
+    subclass_names = ['BuiltinImporter', 'FrozenImporter', 'PathFinder']
 
 
 (Frozen_MetaPathFinderInheritanceTests,
