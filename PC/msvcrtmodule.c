@@ -221,7 +221,11 @@ static long
 msvcrt_kbhit_impl(PyObject *module)
 /*[clinic end generated code: output=940dfce6587c1890 input=e70d678a5c2f6acc]*/
 {
+#ifdef MS_APP
+  return 0;
+#else
     return _kbhit();
+#endif
 }
 
 /*[clinic input]
@@ -240,12 +244,16 @@ static int
 msvcrt_getch_impl(PyObject *module)
 /*[clinic end generated code: output=a4e51f0565064a7d input=37a40cf0ed0d1153]*/
 {
+#ifdef MS_APP
+  return 0;
+#else
     int ch;
 
     Py_BEGIN_ALLOW_THREADS
     ch = _getch();
     Py_END_ALLOW_THREADS
     return ch;
+#endif
 }
 
 /*[clinic input]
@@ -258,12 +266,16 @@ static wchar_t
 msvcrt_getwch_impl(PyObject *module)
 /*[clinic end generated code: output=be9937494e22f007 input=27b3dec8ad823d7c]*/
 {
+#ifdef MS_APP
+  return 0;
+#else
     wchar_t ch;
 
     Py_BEGIN_ALLOW_THREADS
     ch = _getwch();
     Py_END_ALLOW_THREADS
     return ch;
+#endif
 }
 
 /*[clinic input]
@@ -276,12 +288,16 @@ static int
 msvcrt_getche_impl(PyObject *module)
 /*[clinic end generated code: output=d8f7db4fd2990401 input=43311ade9ed4a9c0]*/
 {
+#ifdef MS_APP
+  return 0;
+#else
     int ch;
 
     Py_BEGIN_ALLOW_THREADS
     ch = _getche();
     Py_END_ALLOW_THREADS
     return ch;
+#endif
 }
 
 /*[clinic input]
@@ -294,12 +310,16 @@ static wchar_t
 msvcrt_getwche_impl(PyObject *module)
 /*[clinic end generated code: output=d0dae5ba3829d596 input=49337d59d1a591f8]*/
 {
+#ifdef MS_APP
+  return 0;
+#else
     wchar_t ch;
 
     Py_BEGIN_ALLOW_THREADS
     ch = _getwche();
     Py_END_ALLOW_THREADS
     return ch;
+#endif
 }
 
 /*[clinic input]
@@ -315,10 +335,14 @@ static PyObject *
 msvcrt_putch_impl(PyObject *module, char char_value)
 /*[clinic end generated code: output=92ec9b81012d8f60 input=ec078dd10cb054d6]*/
 {
+#ifdef MS_APP
+  Py_RETURN_NOTIMPLEMENTED;
+#else
     _Py_BEGIN_SUPPRESS_IPH
     _putch(char_value);
     _Py_END_SUPPRESS_IPH
     Py_RETURN_NONE;
+#endif
 }
 
 /*[clinic input]
@@ -334,10 +358,14 @@ static PyObject *
 msvcrt_putwch_impl(PyObject *module, int unicode_char)
 /*[clinic end generated code: output=a3bd1a8951d28eee input=996ccd0bbcbac4c3]*/
 {
+#ifdef MS_APP
+  Py_RETURN_NOTIMPLEMENTED;
+#else
     _Py_BEGIN_SUPPRESS_IPH
     _putwch(unicode_char);
     _Py_END_SUPPRESS_IPH
     Py_RETURN_NONE;
+#endif
 
 }
 
@@ -358,6 +386,9 @@ static PyObject *
 msvcrt_ungetch_impl(PyObject *module, char char_value)
 /*[clinic end generated code: output=c6942a0efa119000 input=22f07ee9001bbf0f]*/
 {
+#ifdef MS_APP
+  Py_RETURN_NOTIMPLEMENTED;
+#else
     int res;
 
     _Py_BEGIN_SUPPRESS_IPH
@@ -367,6 +398,7 @@ msvcrt_ungetch_impl(PyObject *module, char char_value)
     if (res == EOF)
         return PyErr_SetFromErrno(PyExc_OSError);
     Py_RETURN_NONE;
+#endif
 }
 
 /*[clinic input]
@@ -382,6 +414,9 @@ static PyObject *
 msvcrt_ungetwch_impl(PyObject *module, int unicode_char)
 /*[clinic end generated code: output=e63af05438b8ba3d input=83ec0492be04d564]*/
 {
+#ifdef MS_APP
+  Py_RETURN_NOTIMPLEMENTED;
+#else
     int res;
 
     _Py_BEGIN_SUPPRESS_IPH
@@ -391,6 +426,7 @@ msvcrt_ungetwch_impl(PyObject *module, int unicode_char)
     if (res == WEOF)
         return PyErr_SetFromErrno(PyExc_OSError);
     Py_RETURN_NONE;
+#endif
 }
 
 #ifdef _DEBUG

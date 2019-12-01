@@ -37,15 +37,15 @@
     <DisplayString Condition="IsString() &amp;&amp; PyUnicode_KIND() == 4">{PyUnicode_4BYTE_DATA(),na}</DisplayString>
     <DisplayString Condition="IsList()">{{ size={((PyVarObject*)this)->ob_size} }}</DisplayString>
     <DisplayString Condition="IsCallable()">{{ PyFunctionObject name={((PyFunctionObject*)this)->func_name,na} }}</DisplayString>
-    <DisplayString Condition="IsBytes()">{{ PyBytesObject size={((PyVarObject*)this)->ob_size} }}</DisplayString>
-    <DisplayString Condition="IsTuple()">{{ PyTupleObject size={((PyVarObject*)this)->ob_size} }}</DisplayString>
-    <DisplayString Condition="IsLong()">{{ PyLongObject value={*((PyLongObject*)this)->ob_digit} }}</DisplayString>
+    <DisplayString Condition="IsBytes()">{{ PyBytesObject size={((PyVarObject*)this)->ob_size,na} }}</DisplayString>
+    <DisplayString Condition="IsTuple()">{{ PyTupleObject size={((PyVarObject*)this)->ob_size,na} }}</DisplayString>
+    <DisplayString Condition="IsLong()">{{ PyLongObject value={*((PyLongObject*)this)->ob_digit,na} }}</DisplayString>
     <DisplayString Condition="IsNone()">{{ PyNoneObject }}</DisplayString>
     <DisplayString Condition="IsModule()">{{ PyModuleObject name={((PyModuleObject*)this)->md_name,na} }}</DisplayString>
     <DisplayString Condition="IsMethod()">{{ PyMethodObject func={((PyMethodObject*)this)->im_func,na} }}</DisplayString>
     <DisplayString Condition="IsInstance()">{{ PyInstanceMethodObject func={((PyInstanceMethodObject*)this)->func,na} }}</DisplayString>
-    <DisplayString Condition="IsDict()">{{ PyDictObject size={((PyDictObject*)this)->ma_keys->dk_nentries} }}</DisplayString>
-    <DisplayString Condition="!IsString() &amp;&amp; !IsList()">{ob_type->tp_name}</DisplayString>
+    <DisplayString Condition="IsDict()">{{ PyDictObject size={((PyDictObject*)this)->ma_keys->dk_nentries,na} }}</DisplayString>
+    <DisplayString Condition="!IsString() &amp;&amp; !IsList()">{ob_type->tp_name,na}</DisplayString>
     <Expand>
       <Item Name="ob_refcnt">ob_refcnt</Item>
       <!--List object section PyListObject-->
@@ -117,6 +117,21 @@
         <ValuePointer Condition="((PyDictObject*)this)-&gt;ma_values != 0">*((PyDictObject *)this)->ma_values</ValuePointer>
         <ValuePointer Condition="((PyDictObject*)this)-&gt;ma_values == 0">DK_ENTRIES()</ValuePointer>
       </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="_inittab">
+    <DisplayString>{{ name={name,na}, initfunc={initfunc,na} }}</DisplayString>
+    <Expand>
+      <Item Name="name">name,na</Item>
+      <Item Name="initfunc">initfunc,na</Item>
+    </Expand>
+  </Type>
+  <Type Name="PyDictKeyEntry">
+    <DisplayString>{{ key={me_key,na} value={me_value,na} }}</DisplayString>
+    <Expand>
+      <Item Name="me_hash">me_hash,na</Item>
+      <Item Name="me_key">me_key,na</Item>
+      <Item Name="me_value">me_value,na</Item>
     </Expand>
   </Type>
   <Type Name="_typeobject">

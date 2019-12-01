@@ -1080,10 +1080,12 @@ sys_getwindowsversion(PyObject *self)
     int pos = 0;
     OSVERSIONINFOEXW ver;
     DWORD realMajor, realMinor, realBuild;
+#ifdef MS_DESKTOP
     HANDLE hKernel32;
     wchar_t kernel32_path[MAX_PATH];
     LPVOID verblock;
     DWORD verblock_size;
+#endif
 
     ver.dwOSVersionInfoSize = sizeof(ver);
     if (!GetVersionExW((LPOSVERSIONINFOW)&ver))
@@ -1107,7 +1109,7 @@ sys_getwindowsversion(PyObject *self)
     realMinor = ver.dwMinorVersion;
     realBuild = ver.dwBuildNumber;
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+#ifdef MS_DESKTOP
     // GetVersion will lie if we are running in a compatibility mode.
     // We need to read the version info from a system file resource
     // to accurately identify the OS version. If we fail for any reason,

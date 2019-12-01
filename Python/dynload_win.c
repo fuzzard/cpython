@@ -19,7 +19,7 @@ void _Py_DeactivateActCtx(ULONG_PTR cookie);
 #endif
 
 #ifdef _DEBUG
-#define PYD_DEBUG_SUFFIX "_d"
+#define PYD_DEBUG_SUFFIX ""
 #else
 #define PYD_DEBUG_SUFFIX ""
 #endif
@@ -188,12 +188,10 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
                                               const char *shortname,
                                               PyObject *pathname, FILE *fp)
 {
-#ifdef MS_APP
-	return NULL;
-#else
     dl_funcptr p;
     char funcname[258], *import_python;
     const wchar_t *wpathname;
+    const wchar_t* prefix_length;
 
 #ifndef _DEBUG
     _Py_CheckPython3();
@@ -207,13 +205,15 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
 
     {
         HINSTANCE hDLL = NULL;
-        unsigned int old_mode;
 #if HAVE_SXS
         ULONG_PTR cookie = 0;
 #endif
 
         /* Don't display a message box when Python can't load a DLL */
+#ifdef MS_DESKTOP
+        unsigned int old_mode;
         old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
+#endif
 
 #if HAVE_SXS
         cookie = _Py_ActivateActCtx();
@@ -224,6 +224,17 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
 #ifdef MS_DESKTOP
         hDLL = LoadLibraryExW(wpathname, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 #else
+    PyThreadState* tstate = PyThreadState_Get();
+
+    if (tstate == NULL)
+      return NULL;
+
+    // LoadPackagedLibrary doesn't accept absolute paths so we need to trim
+    // the base path
+    prefix_length = wcsrchr(tstate->interp->core_config.executable, L'\\');
+    wpathname += (prefix_length - tstate->interp->core_config.executable);
+    wpathname++;
+
 		hDLL = LoadPackagedLibrary(wpathname, 0);
 #endif
 #if HAVE_SXS
@@ -231,7 +242,9 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
 #endif
 
         /* restore old error mode settings */
+#ifdef MS_DESKTOP
         SetErrorMode(old_mode);
+#endif
 
         if (hDLL==NULL){
             PyObject *message;
@@ -290,11 +303,7 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
             char buffer[256];
 
             PyOS_snprintf(buffer, sizeof(buffer),
-#ifdef _DEBUG
-                          "python%d%d_d.dll",
-#else
-                          "python%d%d.dll",
-#endif
+                          "python%d.%d.dll",
                           PY_MAJOR_VERSION,PY_MINOR_VERSION);
             import_python = GetPythonImport(hDLL);
 
@@ -312,5 +321,4 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
     }
 
     return p;
-#endif
 }

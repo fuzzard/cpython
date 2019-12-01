@@ -68,6 +68,12 @@
 
 #include "Python.h"
 #include <time.h>               /* for seeding to current time */
+#ifdef MS_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+#endif
 #ifdef HAVE_PROCESS_H
 #  include <process.h>          /* needed for getpid() */
 #endif
@@ -222,7 +228,7 @@ random_seed_time_pid(RandomObject *self)
     key[0] = (PY_UINT32_T)(now & 0xffffffffU);
     key[1] = (PY_UINT32_T)(now >> 32);
 
-    key[2] = (PY_UINT32_T)_getpid();
+    key[2] = (PY_UINT32_T)GetCurrentProcessId();
 
     now = _PyTime_GetMonotonicClock();
     key[3] = (PY_UINT32_T)(now & 0xffffffffU);

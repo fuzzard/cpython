@@ -258,6 +258,9 @@ PyDoc_STRVAR(
 static PyObject *
 overlapped_RegisterWaitWithQueue(PyObject *self, PyObject *args)
 {
+#ifdef MS_APP
+  Py_RETURN_NOTIMPLEMENTED;
+#else
     HANDLE NewWaitObject;
     HANDLE Object;
     ULONG Milliseconds;
@@ -289,6 +292,7 @@ overlapped_RegisterWaitWithQueue(PyObject *self, PyObject *args)
     }
 
     return Py_BuildValue(F_HANDLE, NewWaitObject);
+#endif
 }
 
 PyDoc_STRVAR(
@@ -299,6 +303,9 @@ PyDoc_STRVAR(
 static PyObject *
 overlapped_UnregisterWait(PyObject *self, PyObject *args)
 {
+#ifdef MS_APP
+  Py_RETURN_NOTIMPLEMENTED;
+#else
     HANDLE WaitHandle;
     BOOL ret;
 
@@ -312,6 +319,7 @@ overlapped_UnregisterWait(PyObject *self, PyObject *args)
     if (!ret)
         return SetFromWindowsErr(0);
     Py_RETURN_NONE;
+#endif
 }
 
 PyDoc_STRVAR(
@@ -322,6 +330,9 @@ PyDoc_STRVAR(
 static PyObject *
 overlapped_UnregisterWaitEx(PyObject *self, PyObject *args)
 {
+#ifdef MS_APP
+  Py_RETURN_NOTIMPLEMENTED;
+#else
     HANDLE WaitHandle, Event;
     BOOL ret;
 
@@ -335,6 +346,7 @@ overlapped_UnregisterWaitEx(PyObject *self, PyObject *args)
     if (!ret)
         return SetFromWindowsErr(0);
     Py_RETURN_NONE;
+#endif
 }
 
 /*

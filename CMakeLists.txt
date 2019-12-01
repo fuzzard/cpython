@@ -10,15 +10,14 @@ find_package(bzip2 NO_MODULE REQUIRED)
 find_package(libffi NO_MODULE REQUIRED)
 find_package(xz NO_MODULE REQUIRED)
 find_package(sqlite3 NO_MODULE REQUIRED)
-find_program(msbuild REQUIRED)
 
-add_custom_target(_generate_import_h
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/PCbuild/get_externals.bat
-  COMMAND "${CMAKE_VS_MSBUILD_COMMAND}" ${CMAKE_CURRENT_SOURCE_DIR}/PCbuild/pcbuild.sln /p:Configuration=Release /p:Platform=x64 /t:_freeze_importlib
-  BYPRODUCTS
-	${CMAKE_CURRENT_SOURCE_DIR}/Python/import.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Python/import_external.h
-)
+# add_custom_target(_generate_import_h
+#   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/PCbuild/get_externals.bat
+#   COMMAND "${CMAKE_VS_MSBUILD_COMMAND}" ${CMAKE_CURRENT_SOURCE_DIR}/PCbuild/pcbuild.sln /p:Configuration=Release /p:Platform=x64 /t:_freeze_importlib
+#   BYPRODUCTS
+# 	${CMAKE_CURRENT_SOURCE_DIR}/Python/import.h
+# 	${CMAKE_CURRENT_SOURCE_DIR}/Python/import_external.h
+# )
 
 add_library(pythoncore SHARED
     Include/abstract.h
@@ -338,6 +337,13 @@ add_library(pythoncore SHARED
     Python/thread.c
     Python/traceback.c
     Python/wordcode_helpers.h
+    Python/clinic/_warnings.c.h
+    Python/clinic/bltinmodule.c.h
+    Python/clinic/context.c.h
+    Python/clinic/import.c.h
+    Python/clinic/marshal.c.h
+    Python/clinic/sysmodule.c.h
+    Python/clinic/traceback.c.h
 )
 
 if(WINDOWS_STORE)
@@ -346,18 +352,19 @@ if(WINDOWS_STORE)
   )
 endif()
 
-add_dependencies(pythoncore _generate_import_h)
+# add_dependencies(pythoncore _generate_import_h)
 
 target_compile_definitions(pythoncore PRIVATE
   _USRDLL
   Py_BUILD_CORE
-  Py_BUILD_CORE_BUILTIN
   Py_ENABLE_SHARED
   _Py_HAVE_ZLIB
-  MS_DLL_ID="3"
+  MS_DLL_ID="3.7"
   _WIN32_WINNT=0x0A00
   WINVER=0x0A00
   NTDDI_VERSION=0x0A000007
+  $<$<CONFIG:Debug>:DEBUG>
+  $<$<CONFIG:RelWithDebInfo>:NDEBUG>
 )
 
 target_include_directories(pythoncore PRIVATE
@@ -377,7 +384,7 @@ set_target_properties(pythoncore PROPERTIES
   OUTPUT_NAME ${PY_SHARED_LIB_NAME}
   # OUTPUT_NAME_DEBUG ${PY_SHARED_LIB_NAME}d
   COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
-  COMPILE_PDB_NAME ${PY_SHARED_LIB_NAME}.pdb
+  COMPILE_PDB_NAME ${PY_SHARED_LIB_NAME}
   # COMPILE_PDB_NAME_DEBUG ${PY_SHARED_LIB_NAME}d.pdb
 )
 
@@ -396,12 +403,64 @@ target_link_libraries(pythoncore
 )
 
 target_link_options(pythoncore PRIVATE
-  $<$<CONFIG:Debug>:/NODEFAULTLIB:vccorlibd>
-  $<$<CONFIG:Debug>:/NODEFAULTLIB:msvcrtd>
-  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:vccorlib>
-  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:msvcrt>
+  /NODEFAULTLIB:vccorlibd
+  /NODEFAULTLIB:msvcrtd
+  /NODEFAULTLIB:vccorlib
+  /NODEFAULTLIB:msvcrt
   /INCREMENTAL:NO
-  /debug
+  /debug:full
+)
+
+add_executable(python_cli
+  Programs/python.c
+)
+target_compile_definitions(python_cli PRIVATE
+  _CONSOLE
+  Py_BUILD_CORE
+  Py_ENABLE_SHARED
+  _Py_HAVE_ZLIB
+  MS_DLL_ID="3.7"
+  _WIN32_WINNT=0x0A00
+  WINVER=0x0A00
+  NTDDI_VERSION=0x0A000007
+  $<$<CONFIG:Debug>:DEBUG>
+  $<$<CONFIG:RelWithDebInfo>:NDEBUG>
+)
+
+target_include_directories(python_cli PRIVATE
+    Include/
+    Include/internal
+    PC/
+)
+
+target_compile_options(python_cli PRIVATE
+  /ZW
+  /EHsc
+  /MP
+)
+
+target_link_libraries(python_cli
+  PRIVATE
+    $<$<CONFIG:Debug>:vccorlibd.lib>
+    $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
+    $<$<CONFIG:Debug>:msvcrtd.lib>
+    $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
+    zlib::zlibstatic
+    pythoncore
+    ws2_32.lib
+    version.lib
+    shlwapi.lib
+    Advapi32.lib
+    Kernel32.lib
+)
+
+target_link_options(python_cli PRIVATE
+  /NODEFAULTLIB:vccorlibd
+  /NODEFAULTLIB:msvcrtd
+  /NODEFAULTLIB:vccorlib
+  /NODEFAULTLIB:msvcrt
+  /INCREMENTAL:NO
+  /debug:full
 )
 
 add_library(python SHARED
@@ -412,13 +471,14 @@ add_library(python SHARED
 target_compile_definitions(python PRIVATE
   _USRDLL
   Py_BUILD_CORE
-  Py_BUILD_CORE_BUILTIN
   Py_ENABLE_SHARED
   _Py_HAVE_ZLIB
-  MS_DLL_ID="3"
+  MS_DLL_ID="3.7"
   _WIN32_WINNT=0x0A00
   WINVER=0x0A00
   NTDDI_VERSION=0x0A000007
+  $<$<CONFIG:Debug>:DEBUG>
+  $<$<CONFIG:RelWithDebInfo>:NDEBUG>
 )
 
 target_include_directories(python PRIVATE
@@ -455,12 +515,12 @@ target_link_libraries(python
 )
 
 target_link_options(python PRIVATE
-  $<$<CONFIG:Debug>:/NODEFAULTLIB:vccorlibd>
-  $<$<CONFIG:Debug>:/NODEFAULTLIB:msvcrtd>
-  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:vccorlib>
-  $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:msvcrt>
+  /NODEFAULTLIB:vccorlibd
+  /NODEFAULTLIB:msvcrtd
+  /NODEFAULTLIB:vccorlib
+  /NODEFAULTLIB:msvcrt
   /INCREMENTAL:NO
-  /debug
+  /debug:full
 )
 
 
@@ -489,7 +549,9 @@ macro(add_py_module)
       _WIN32_WINNT=0x0A00
       WINVER=0x0A00
       NTDDI_VERSION=0x0A000007
-      MS_DLL_ID="3"
+      MS_DLL_ID="3.7"
+      $<$<CONFIG:Debug>:DEBUG>
+      $<$<CONFIG:RelWithDebInfo>:NDEBUG>
       ${PY_MODULE_DEFINITIONS}
   )
 
@@ -530,12 +592,12 @@ macro(add_py_module)
   )
 
   target_link_options(${PY_MODULE_NAME} PRIVATE
-    $<$<CONFIG:Debug>:/NODEFAULTLIB:vccorlibd>
-    $<$<CONFIG:Debug>:/NODEFAULTLIB:msvcrtd>
-    $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:vccorlib>
-    $<$<CONFIG:RelWithDebInfo>:/NODEFAULTLIB:msvcrt>
-    /INCREMENTAL:NO
-    /debug
+	/NODEFAULTLIB:vccorlibd
+	/NODEFAULTLIB:msvcrtd
+	/NODEFAULTLIB:vccorlib
+	/NODEFAULTLIB:msvcrt
+	/INCREMENTAL:NO
+	/debug:full
   )
 endmacro()
 

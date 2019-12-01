@@ -4137,23 +4137,6 @@ _ssl._SSLContext.load_dh_params
 
 [clinic start generated code]*/
 
-#ifdef MS_APP
-DH *PEM_read_DHparams(FILE *fp, DH **x, pem_password_cb *cb, void *u)
-{
-    BIO *b;
-    DH *ret;
-
-    if ((b = BIO_new(BIO_s_file())) == NULL) {
-        PEMerr(PEM_F_PEM_READ_DHPARAMS, ERR_R_BUF_LIB);
-        return 0;
-    }
-    BIO_set_fp(b, fp, BIO_NOCLOSE);
-    ret = PEM_read_bio_DHparams(b, x, cb, u);
-    BIO_free(b);
-    return ret;
-}
-#endif
-
 static PyObject *
 _ssl__SSLContext_load_dh_params(PySSLContext *self, PyObject *filepath)
 /*[clinic end generated code: output=1c8e57a38e055af0 input=c8871f3c796ae1d6]*/

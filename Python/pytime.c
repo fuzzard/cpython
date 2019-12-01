@@ -667,8 +667,10 @@ pygettimeofday(_PyTime_t *tp, _Py_clock_info_t *info, int raise)
        days). */
     *tp = large.QuadPart * 100 - 11644473600000000000;
     if (info) {
+#ifdef MS_DESKTOP
         DWORD timeAdjustment, timeIncrement;
         BOOL isTimeAdjustmentDisabled, ok;
+#endif
 
         info->implementation = "GetSystemTimeAsFileTime()";
         info->monotonic = 0;
@@ -788,8 +790,10 @@ pymonotonic(_PyTime_t *tp, _Py_clock_info_t *info, int raise)
     *tp = t * MS_TO_NS;
 
     if (info) {
+#ifdef MS_DESKTOP
         DWORD timeAdjustment, timeIncrement;
         BOOL isTimeAdjustmentDisabled, ok;
+#endif
         info->implementation = "GetTickCount64()";
         info->monotonic = 1;
 #ifdef MS_DESKTOP

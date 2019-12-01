@@ -3266,9 +3266,7 @@ posix_getcwd(int use_bytes)
             break;
 
         buf = tmpbuf;
-#ifdef MS_WINDOWS
-        cwd = getcwd(buf, (int)buflen);
-#else
+#ifndef MS_WINDOWS
         cwd = getcwd(buf, buflen);
 #endif
     } while (cwd == NULL && errno == ERANGE);
@@ -6080,7 +6078,7 @@ static PyObject *
 os_getpid_impl(PyObject *module)
 /*[clinic end generated code: output=9ea6fdac01ed2b3c input=5a9a00f0ab68aa00]*/
 {
-    return PyLong_FromPid(getpid());
+    return PyLong_FromPid(GetCurrentProcessId());
 }
 #endif /* HAVE_GETPID */
 

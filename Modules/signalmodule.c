@@ -303,7 +303,7 @@ signal_handler(int sig_num)
     int save_errno = errno;
 
     /* See NOTES section above */
-    if (getpid() == main_pid)
+    if (GetCurrentProcessId() == main_pid)
     {
         trip_signal(sig_num);
     }
@@ -1216,7 +1216,7 @@ PyInit__signal(void)
     int i;
 
     main_thread = PyThread_get_thread_ident();
-    main_pid = getpid();
+    main_pid = GetCurrentProcessId();
 
     /* Create the module and add the functions */
     m = PyModule_Create(&signalmodule);
