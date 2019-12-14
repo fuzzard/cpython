@@ -1623,7 +1623,7 @@ _PySignal_AfterFork(void)
      * the interpreter had an opportunity to call the handlers.  issue9535. */
     _clear_pending_signals();
     main_thread = PyThread_get_thread_ident();
-    main_pid = getpid();
+    main_pid = GetCurrentProcessId();
 }
 
 int
