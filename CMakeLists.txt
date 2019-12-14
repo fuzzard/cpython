@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.0)
+cmake_minimum_required(VERSION 3.16.0)
 
 project(python VERSION 3.7.5 LANGUAGES C CXX ASM)
 enable_language(ASM_MASM)
@@ -19,7 +19,7 @@ find_package(sqlite3 NO_MODULE REQUIRED)
 # 	${CMAKE_CURRENT_SOURCE_DIR}/Python/import_external.h
 # )
 
-add_library(pythoncore SHARED
+add_library(python SHARED
     Include/abstract.h
     Include/accu.h
     Include/asdl.h
@@ -347,14 +347,14 @@ add_library(pythoncore SHARED
 )
 
 if(WINDOWS_STORE)
-  target_sources(pythoncore PRIVATE
+  target_sources(python PRIVATE
     PC/uwp_compat.cpp
   )
 endif()
 
-# add_dependencies(pythoncore _generate_import_h)
+# add_dependencies(python _generate_import_h)
 
-target_compile_definitions(pythoncore PRIVATE
+target_compile_definitions(python PRIVATE
   _USRDLL
   Py_BUILD_CORE
   Py_ENABLE_SHARED
@@ -367,20 +367,20 @@ target_compile_definitions(pythoncore PRIVATE
   $<$<CONFIG:RelWithDebInfo>:NDEBUG>
 )
 
-target_include_directories(pythoncore PRIVATE
+target_include_directories(python PRIVATE
     Include/
     Include/internal
     PC/
 )
 
-target_compile_options(pythoncore PRIVATE
+target_compile_options(python PRIVATE
   /ZW
   /EHsc
   /MP
 )
 
 set(PY_SHARED_LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
-set_target_properties(pythoncore PROPERTIES
+set_target_properties(python PROPERTIES
   OUTPUT_NAME ${PY_SHARED_LIB_NAME}
   # OUTPUT_NAME_DEBUG ${PY_SHARED_LIB_NAME}d
   COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
@@ -388,21 +388,23 @@ set_target_properties(pythoncore PROPERTIES
   # COMPILE_PDB_NAME_DEBUG ${PY_SHARED_LIB_NAME}d.pdb
 )
 
-target_link_libraries(pythoncore
+target_link_libraries(python
   PRIVATE
-    $<$<CONFIG:Debug>:vccorlibd.lib>
-    $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
-    $<$<CONFIG:Debug>:msvcrtd.lib>
-    $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
+    debug vccorlibd.lib
+    optimized vccorlib.lib
+    debug msvcrtd.lib
+    optimized msvcrt.lib
     zlib::zlibstatic
     ws2_32.lib
     version.lib
     shlwapi.lib
     Advapi32.lib
     Kernel32.lib
+    bufferoverflowU.lib
+    
 )
 
-target_link_options(pythoncore PRIVATE
+target_link_options(python PRIVATE
   /NODEFAULTLIB:vccorlibd
   /NODEFAULTLIB:msvcrtd
   /NODEFAULTLIB:vccorlib
@@ -441,12 +443,12 @@ target_compile_options(python_cli PRIVATE
 
 target_link_libraries(python_cli
   PRIVATE
-    $<$<CONFIG:Debug>:vccorlibd.lib>
-    $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
-    $<$<CONFIG:Debug>:msvcrtd.lib>
-    $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
+    debug vccorlibd.lib
+    optimized vccorlib.lib
+    debug msvcrtd.lib
+    optimized msvcrt.lib
     zlib::zlibstatic
-    pythoncore
+    python
     ws2_32.lib
     version.lib
     shlwapi.lib
@@ -463,12 +465,12 @@ target_link_options(python_cli PRIVATE
   /debug:full
 )
 
-add_library(python SHARED
+add_library(python3dll SHARED
   PC/python3.def
   PC/python3dll.c
 )
 
-target_compile_definitions(python PRIVATE
+target_compile_definitions(python3dll PRIVATE
   _USRDLL
   Py_BUILD_CORE
   Py_ENABLE_SHARED
@@ -481,7 +483,7 @@ target_compile_definitions(python PRIVATE
   $<$<CONFIG:RelWithDebInfo>:NDEBUG>
 )
 
-target_include_directories(python PRIVATE
+target_include_directories(python3dll PRIVATE
     Include/
     Include/internal
     PC/
@@ -490,7 +492,7 @@ target_include_directories(python PRIVATE
 )
 
 set(LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR})
-set_target_properties(python PROPERTIES
+set_target_properties(python3dll PROPERTIES
   OUTPUT_NAME ${LIB_NAME}
   # OUTPUT_NAME_DEBUG ${LIB_NAME}d
   COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
@@ -498,14 +500,14 @@ set_target_properties(python PROPERTIES
   # COMPILE_PDB_NAME_DEBUG ${LIB_NAME}d
 )
 
-target_link_libraries(python
+target_link_libraries(python3dll
   PRIVATE
-    $<$<CONFIG:Debug>:vccorlibd.lib>
-    $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
-    $<$<CONFIG:Debug>:msvcrtd.lib>
-    $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
+    debug vccorlibd.lib
+    optimized vccorlib.lib
+    debug msvcrtd.lib
+    optimized msvcrt.lib
     zlib::zlibstatic
-    pythoncore
+    python
     ws2_32.lib
     version.lib
     shlwapi.lib
@@ -514,7 +516,7 @@ target_link_libraries(python
     WindowsApp.lib
 )
 
-target_link_options(python PRIVATE
+target_link_options(python3dll PRIVATE
   /NODEFAULTLIB:vccorlibd
   /NODEFAULTLIB:msvcrtd
   /NODEFAULTLIB:vccorlib
@@ -555,7 +557,7 @@ macro(add_py_module)
       ${PY_MODULE_DEFINITIONS}
   )
 
-  target_compile_options(pythoncore PRIVATE
+  target_compile_options(python PRIVATE
     /EHsc
     /MP
   )
@@ -577,12 +579,12 @@ macro(add_py_module)
 
   target_link_libraries(${PY_MODULE_NAME}
     PRIVATE
-      $<$<CONFIG:Debug>:vccorlibd.lib>
-      $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
-      $<$<CONFIG:Debug>:msvcrtd.lib>
-      $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
+      debug vccorlibd.lib
+      optimized vccorlib.lib
+      debug msvcrtd.lib
+      optimized msvcrt.lib
       ${PY_MODULE_LIBRARIES}
-      pythoncore
+      python
       ws2_32.lib
       version.lib
       shlwapi.lib
@@ -822,7 +824,7 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion
 )
 
-install(TARGETS python pythoncore EXPORT ${PROJECT_NAME}
+install(TARGETS python3dll python EXPORT python
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -901,7 +903,7 @@ install(FILES
     lib/cmake/${PROJECT_NAME}
 )
 
-export(TARGETS ${PROJECT_NAME}
+export(TARGETS ${PROJECT_NAME} python3dll
   FILE
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
   NAMESPACE ${PROJECT_NAME}::

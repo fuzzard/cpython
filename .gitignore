@@ -113,3 +113,4 @@ gmon.out
 *.obj
 *.lib
 *.exp
+build-*/
