@@ -599,7 +599,8 @@ macro(add_py_module)
 	/NODEFAULTLIB:vccorlib
 	/NODEFAULTLIB:msvcrt
 	/INCREMENTAL:NO
-	/debug:full
+  /debug:full
+  /SAFESEH:NO
   )
 endmacro()
 
