@@ -672,7 +672,7 @@ add_py_module(NAME _decimal
     Modules/_decimal/libmpdec/sixstep.c
     Modules/_decimal/libmpdec/transpose.c
   DEFINITIONS
-    # MASM
+    ANSI
     _CRT_SECURE_NO_WARNINGS
   INCLUDES
     Modules/_decimal/libmpdec
@@ -682,11 +682,11 @@ if(${CMAKE_GENERATOR_PLATFORM} STREQUAL "win32")
   target_compile_definitions(_decimal PRIVATE
     CONFIG_32
     PPRO
+
   )
 elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
   target_compile_definitions(_decimal PRIVATE
     CONFIG_64
-    ANSI
   )
   # target_sources(_decimal PRIVATE
   #   ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_decimal/libmpdec/vcdiv64.asm
@@ -694,12 +694,10 @@ elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
 elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
   target_compile_definitions(_decimal PRIVATE
     CONFIG_32
-    ANSI
   )
 elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
   target_compile_definitions(_decimal PRIVATE
     CONFIG_64
-    ANSI
   )
 endif()
 
