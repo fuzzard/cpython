@@ -681,8 +681,6 @@ add_py_module(NAME _decimal
 if(${CMAKE_GENERATOR_PLATFORM} STREQUAL "win32")
   target_compile_definitions(_decimal PRIVATE
     CONFIG_32
-    PPRO
-
   )
 elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
   target_compile_definitions(_decimal PRIVATE
