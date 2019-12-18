@@ -452,8 +452,8 @@ inline intptr_t _Py_atomic_load_64bit(volatile uintptr_t* value, int order) {
 #define _Py_atomic_load_64bit(ATOMIC_VAL, ORDER) *ATOMIC_VAL
 #endif
 
-inline int _Py_atomic_load_32bit(volatile int* value, int order) {
-    int old;
+inline long _Py_atomic_load_32bit(volatile long* value, int order) {
+    long old;
     switch (order) {
     case _Py_memory_order_acquire:
     {
