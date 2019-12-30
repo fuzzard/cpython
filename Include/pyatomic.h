@@ -418,30 +418,30 @@ typedef struct _Py_atomic_int {
     a uintptr_t it will do an unsigned compare and crash
 */
 inline intptr_t _Py_atomic_load_64bit(volatile uintptr_t* value, int order) {
-    uintptr_t old;
+    int64_t old;
     switch (order) {
     case _Py_memory_order_acquire:
     {
       do {
-        old = *value;
-      } while(_InterlockedCompareExchange64_acq(value, old, old) != old);
+        old = (int64_t)*value;
+      } while(_InterlockedCompareExchange64_acq((volatile int64_t*)value, old, old) != old);
       break;
     }
     case _Py_memory_order_release:
     {
       do {
-        old = *value;
-      } while(_InterlockedCompareExchange64_rel(value, old, old) != old);
+        old = (int64_t)*value;
+      } while(_InterlockedCompareExchange64_rel((volatile int64_t*)value, old, old) != old);
       break;
     }
     case _Py_memory_order_relaxed:
-      old = *value;
+      old = (int64_t)*value;
       break;
     default:
     {
       do {
-        old = *value;
-      } while(_InterlockedCompareExchange64(value, old, old) != old);
+        old = (int64_t)*value;
+      } while(_InterlockedCompareExchange64((volatile int64_t*)value, old, old) != old);
       break;
     }
     }
@@ -485,14 +485,14 @@ inline long _Py_atomic_load_32bit(volatile long* value, int order) {
 
 #define _Py_atomic_store_explicit(ATOMIC_VAL, NEW_VAL, ORDER) \
   if (sizeof(*ATOMIC_VAL._value) == 8) { \
-    _Py_atomic_store_64bit(ATOMIC_VAL._value, NEW_VAL, ORDER) } else { \
-    _Py_atomic_store_32bit(ATOMIC_VAL._value, NEW_VAL, ORDER) }
+    _Py_atomic_store_64bit((volatile long long*)ATOMIC_VAL._value, NEW_VAL, ORDER) } else { \
+    _Py_atomic_store_32bit((volatile long*)ATOMIC_VAL._value, NEW_VAL, ORDER) }
 
 #define _Py_atomic_load_explicit(ATOMIC_VAL, ORDER) \
   ( \
     sizeof(*(ATOMIC_VAL._value)) == 8 ? \
-    _Py_atomic_load_64bit(ATOMIC_VAL._value, ORDER) : \
-    _Py_atomic_load_32bit(ATOMIC_VAL._value, ORDER) \
+    _Py_atomic_load_64bit((volatile long long*)ATOMIC_VAL._value, ORDER) : \
+    _Py_atomic_load_32bit((volatile long*)ATOMIC_VAL._value, ORDER) \
   )
 #endif
 #else  /* !gcc x86  !_msc_ver */
