@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0)
+cmake_minimum_required(VERSION 3.15)
 
 project(python VERSION 3.7.5 LANGUAGES C CXX)
 # enable_language(ASM_MASM)
